@@ -1,0 +1,11 @@
+WIN10:
+C:\Users\SunQi\AppData\Roaming\Code\User
+  onedark:
+  ~\.vscode\extensions\akamud.vscode-theme-onedark-2.2.3\themes
+
+Ubuntu
+~/.config/Code/User
+
+vsc keyboard shotcuts:
+
+Alt+↑/↓ 上下移动这一行

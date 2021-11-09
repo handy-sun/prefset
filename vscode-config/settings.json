@@ -1,0 +1,35 @@
+{
+    "editor.fontSize": 20,
+    "workbench.colorTheme": "Atom One Dark",
+    "workbench.startupEditor": "newUntitledFile",
+    "debug.onTaskErrors": "showErrors",
+    "task.slowProviderWarning": [
+        "npm"
+    ],
+    "cmake.generator": "MinGW Makefiles",
+    "cmake.configureOnOpen": true,
+    "editor.columnSelection": false,
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "C_Cpp.clang_format_fallbackStyle": "LLVM",
+    "python.showStartPage": false,
+    "python.pythonPath": "C:\\Python38\\python.exe",
+    "workbench.editor.untitled.hint": "hidden",
+    "workbench.editorAssociations": {
+        "*.ipynb": "jupyter-notebook"
+    },
+    "files.autoGuessEncoding": true,
+    "files.defaultLanguage": "${activeEditorLanguage}",
+    "launch": {
+        "configurations": [
+        // "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker",
+        ]
+    },
+    "terminal.integrated.fontSize": 18,
+    "security.workspace.trust.untrustedFiles": "open",
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    }
+}
