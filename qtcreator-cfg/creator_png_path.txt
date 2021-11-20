@@ -1,0 +1,1 @@
+sudo cp ~/Qt5.12.8/Tools/QtCreator/share/doc/qtcreator/qtcreator/images/creator-gs-01.png /usr/share/pixmaps/QtProject-qtcreator.png
