@@ -82,7 +82,10 @@ sudo hwclock -r
 ## 7. <font color="#e06c75" size="4"> 安装常用软件包 </font>
 ```bash
 sudo pacman -S git vim cmake ninja clang lldb qtcreator qt5-doc qt5-translations
+
 yay visual-studio-code-bin
+yay google-chrome
+
 # 安装timqq 微信
 yay com.qq.tim.spark
 yay deepin-wine-wechat
