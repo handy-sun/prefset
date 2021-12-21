@@ -1,9 +1,10 @@
 @echo off
-set d=*
+set drt=%~dp0
 if "%1" NEQ "" (
-    set d=%1
+    set drt=%1
 )
-cd %d%
+echo %drt%
+cd %drt%
 for /d /r %%i in (*) do (
-    echo %%i | findstr "\build" >nul && echo del %%i && rmdir /s /q %%i
+    echo %%i | findstr "\build" >nul && echo rmdir %%i && rmdir /s /q %%i
 )
