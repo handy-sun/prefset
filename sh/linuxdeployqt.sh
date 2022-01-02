@@ -1,8 +1,14 @@
 #!/bin/bash
+target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
 ((mod=$argu_length %2))
 # echo argu_list=${argu_list[@]}, argu_length=$argu_length, mod=$mod
+for i in $(seq 0 ${#argu_list[@]}); do
+    if [ $i == "1" ]; then
+        echo ${argu_list[$i]}
+    fi
+done
 qmake_path=`which qmake`
 if test -n "$qmake_path"; then
     if test -L "$qmake_path"; then
