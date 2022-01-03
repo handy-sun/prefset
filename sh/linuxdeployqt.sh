@@ -2,10 +2,15 @@
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
-((mod=$argu_length %2))
-# echo argu_list=${argu_list[@]}, argu_length=$argu_length, mod=$mod
+if test 0 -lt $argu_length; then
+    unset argu_list[0]
+fi
+argu_length=${#argu_list[*]}
+
+echo argu_list=${argu_list[@]}, argu_length=$argu_length
 for i in $(seq 0 ${#argu_list[@]}); do
-    if [ $i == "1" ]; then
+    ((mod=$i %2))
+    if [ $mod == "0" ]; then
         echo ${argu_list[$i]}
     fi
 done
@@ -17,5 +22,5 @@ if test -n "$qmake_path"; then
     fi    
     echo qmake_path=$qmake_path
 else
-    echo err
+    echo 'not in path'
 fi
