@@ -2,7 +2,10 @@
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
-if test 0 -lt $argu_length; then
+if [ $argu_length -eq 0 ]; then
+    
+fi
+if [ $argu_length -gt 0 ]; then
     unset argu_list[0]
 fi
 argu_length=${#argu_list[*]}
@@ -15,8 +18,8 @@ for i in $(seq 0 ${#argu_list[@]}); do
     fi
 done
 qmake_path=`which qmake`
-if test -n "$qmake_path"; then
-    if test -L "$qmake_path"; then
+if [ -n "$qmake_path" ]; then
+    if [ -L "$qmake_path" ]; then
         nme=`readlink -nf "$qmake_path" 2>/dev/null`
         echo nme=$nme
     fi    
