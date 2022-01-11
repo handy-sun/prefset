@@ -25,12 +25,15 @@ for i in $(seq 0 ${#argu_list[@]}); do
 done
 
 dependency_list=$(ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt5|libicu")){printf("%s "), $3}}')
+notfound_list=$(ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}')
+echo "notfound_list:($notfound_list)"
 target_path=`dirname $target_app`
 cd $target_path
 des="lib"
 if [ ! -x "$des" ]; then
     # mkdir "$des"
-    echo mkdir "$target_path/$des"
+    # echo mkdir "$target_path/$des"
+    :
 fi
 
 for i in $dependency_list; do
