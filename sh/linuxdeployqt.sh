@@ -15,43 +15,79 @@ fi
 
 argu_length=${#argu_list[*]}
 
-echo argu_list=${argu_list[@]}, argu_length=$argu_length
+# echo argu_list=${argu_list[@]}, argu_length=$argu_length
 for i in $(seq 0 ${#argu_list[@]}); do
     ((mod=$i %2))
     if [ $mod == "0" ]; then
-        echo 
-        # ${argu_list[$i]}
+        :
+        # echo ${argu_list[$i]}
     fi
 done
 
-dependency_list=$(ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt5|libicu")){printf("%s "), $3}}')
-notfound_list=$(ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}')
-echo "notfound_list:($notfound_list)"
+dependency_list=(`ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt5|libicu")){printf("%s "), $3}}'`)
+notfound_list=(`ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}'`)
+# echo "notfound_list:$notfound_list"
 target_path=`dirname $target_app`
 cd $target_path
 des="lib"
-if [ ! -x "$des" ]; then
+if [ ! -d "$des" ]; then
     # mkdir "$des"
     # echo mkdir "$target_path/$des"
     :
 fi
 
-for i in $dependency_list; do
-    result=`echo $i | grep "Core"`
-    if [ "$result" != "" ]; then
-        qtlib_path=`dirname $i`
-        dependency_list=("${dependency_list[@]}" "$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
+for v in ${dependency_list[*]}; do
+    if [[ "$v" =~ "libQt" ]]; then
+        qtlib_path=`dirname $v`
+        # dependency_list=("${dependency_list[@]}" "$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
+        dependency_list+=("$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
         break
     fi
 done
 
+# echo "dependency_list:(${dependency_list[@]})"
+
+real_dependency_list=()
+plu_str="{"
+
+for v in ${dependency_list[*]}; do
+    if [ -L "$v" ]; then
+        reallink=`readlink -nf "$v" 2>/dev/null`        
+        real_dependency_list+=("$reallink")
+    fi
+    if [[ "$v" =~ "libQt5Gui" ]]; then                
+        plu_str="${plu_str}platforms/libqxcb.so,platforminputcontexts/,platformthemes/,styles/,iconengines/,imageformats/,"
+    elif [[ "$v" =~ "libQt5Network" ]]; then 
+        plu_str="${plu_str}bearer/,"
+    elif [[ "$v" =~ "libQt5PrintSupport" ]]; then 
+        plu_str="${plu_str}printsupport/libcupsprintersupport.so,"
+    elif [[ "$v" =~ "libQt5OpenGL" || "$v" =~ "libQt5XcbQpa" ]]; then
+        plu_str="${plu_str}xcbglintegrations/,"
+    fi
+done
+
+plu_str=${plu_str%,*}
+plu_str="${plu_str}}"
+
+echo "real_len:${#real_dependency_list[*]}"
+# echo "real_list:${real_dependency_list[@]}"
+
+
+plugin_lib="plugins"
+if [ ! -d "$plugin_lib" ]; then
+    mkdir "$plugin_lib"
+fi
+cd "/usr/lib/qt/plugins"
+sudo cp -drP "${plu_str}" "${target_path}/${plugin_lib}"
+
+echo "plu_str="${plu_str}
+echo dest="$target_path/$plugin_lib"
+
 qmake_path=`which qmake`
 if [ -n "$qmake_path" ]; then
     if [ -L "$qmake_path" ]; then
-        nme=`readlink -nf "$qmake_path" 2>/dev/null`
-        echo nme=$nme
+        qmake_path=`readlink -nf "$qmake_path" 2>/dev/null`
     fi    
-    echo qmake_path=$qmake_path
 else
     echo 'not in path'
 fi
