@@ -13,9 +13,10 @@ if [ $target_app == "-h" ]; then
     exit
 fi
 
+argu_list=(${argu_list[@]})
 argu_length=${#argu_list[*]}
 
-for i in $(seq 0 $argu_length); do
+for i in `seq 0 $(($argu_length-1))`; do
 # for i in $(seq 0 ${#argu_list[@]}); do
     echo i=$i ${argu_list[$i]}
     ((mod=$i %2))
@@ -24,7 +25,7 @@ for i in $(seq 0 $argu_length); do
     fi
 done
 
-echo argu_list=${argu_list[@]}, argu_length=$argu_length
+# echo argu_list=${argu_list[@]}, argu_length=$argu_length; exit
 
 dependency_list=(`ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt|libicu")){printf("%s "), $3}}'`)
 notfound_list=(`ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}'`)
