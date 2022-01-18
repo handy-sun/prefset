@@ -23,9 +23,7 @@ argu_length=${#argu_list[*]}
 
 i=0
 while [ $i -lt $argu_length ]; do
-    echo i=$i ${argu_list[$i]}   
-    next_one=${argu_list[$((i+1))]}
-    # if [ "${argu_list[$i]}" == "-e" ]; then
+    # echo i=$i ${argu_list[$i]} next_one=${argu_list[$((i+1))]}    
     case "${argu_list[$i]}" in 
         "-e")        
             if [ -d "$next_one" ]; then
@@ -64,10 +62,77 @@ while [ $i -lt $argu_length ]; do
     let ++i
 done
 
-# echo argu_list=${argu_list[@]}, argu_length=$argu_length; exit
+exclude_list=(
+    "ld-linux.so.2"
+    "ld-linux-x86-64.so.2"
+    "libanl.so.1"
+    "libasound.so.2"
+    "libBrokenLocale.so.1"
+    "libcidn.so.1"
+    "libcom_err.so.2"
+    "libc.so.6"
+    "libdl.so.2"
+    "libdrm.so.2"
+    "libEGL.so.1"
+    "libexpat.so.1"
+    "libfontconfig.so.1"
+    "libfreetype.so.6"
+    "libfribidi.so.0"
+    "libgbm.so.1"
+    "libgcc_s.so.1"
+    "libgdk_pixbuf-2.0.so.0"
+    "libgio-2.0.so.0"
+    "libglapi.so.0"
+    "libGLdispatch.so.0"
+    "libglib-2.0.so.0"
+    "libGL.so.1"
+    "libGLX.so.0"
+    "libgobject-2.0.so.0"
+    "libgpg-error.so.0"
+    "libharfbuzz.so.0"
+    "libICE.so.6"
+    "libjack.so.0"
+    "libm.so.6"
+    "libmvec.so.1"
+    "libnss_compat.so.2"
+    "libnss_db.so.2"
+    "libnss_dns.so.2"
+    "libnss_files.so.2"
+    "libnss_hesiod.so.2"
+    "libnss_nisplus.so.2"
+    "libnss_nis.so.2"
+    "libp11-kit.so.0"
+    "libpango-1.0.so.0"
+    "libpangocairo-1.0.so.0"
+    "libpangoft2-1.0.so.0"
+    "libpthread.so.0"
+    "libresolv.so.2"
+    "librt.so.1"
+    "libSM.so.6"
+    "libstdc\\+\\+.so.6"
+    "libthai.so.0"
+    "libthread_db.so.1"
+    "libusb-1.0.so.0"
+    "libutil.so.1"
+    "libuuid.so.1"
+    "libX11.so.6"
+    "libxcb-dri2.so.0"
+    "libxcb-dri3.so.0"
+    "libxcb.so.1"
+    "libz.so.1"
+    "ld-linux-aarch64.so.1"
+    # "libgthread-2.0.so.0"
+    # "libpcre.so.3"
+    # "libXau.so.6"
+    # "libXdmcp.so.6"
+    # "libbsd.so.0"    
+)
+exclude_str=`echo ${exclude_list[@]} | sed 's/ /|/g'`
 
-# get app's dependent .so list(we real need)
-dep_list=(`ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt|libicu")){printf("%s "), $3}}'`)
+# get app's dependent .so list(real need)
+# dep_list=(`ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt|libicu")){printf("%s "), $3}}'`)
+dep_list=(`ldd $target_app | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
+
 for var in ${dep_list[*]}; do
     if [[ "$var" =~ "libQt" ]]; then
         qtlib_path=$(cd `dirname "$var"` ; pwd)
@@ -77,8 +142,10 @@ for var in ${dep_list[*]}; do
 done
 var=""
 
+echo "dep_list=( ${dep_list[@]} )" | sed 's/ /\n/g'
+
 for etp in ${extra_plugin_list[@]}; do
-    extraplug_dep_list=(`ldd $etp 2>/dev/null | awk '{if (match($3, "/") && match($1, "libQt")){printf("%s "), $3}}'`)
+    extraplug_dep_list=(`ldd $etp 2>/dev/null | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
     for ed in ${extraplug_dep_list[@]}; do
         if [[ ${dep_list[@]/${ed}/} == ${dep_list[@]} ]]; then
             dep_list+=("$ed")
@@ -87,14 +154,15 @@ for etp in ${extra_plugin_list[@]}; do
 done 
 
 notfound_list=(`ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}'`)
-# echo "notfound_list:$notfound_list"
+if [ ${#notfound_list[*]} -gt 0 ]; then
+    echo "some libraries don't found, check it and try again:( ${notfound_list[@]} )" | sed 's/ /\n/g'
+    exit -1
+fi
+
 target_path=$(cd `dirname "$target_app"` ; pwd)
 cd $target_path
 
-# echo target_path=$target_path
-# echo qtlib_path=$qtlib_path
-
-echo "dep_list:( ${dep_list[@]} )" | sed 's/ /\n/g'
+echo qtlib_path=$qtlib_path
 
 real_dep_list=()
 plug_dlist=()
@@ -126,7 +194,7 @@ done
 
 alldep_list=(${dep_list[@]} ${real_dep_list[@]})
 
-echo "alldep_list.len:${#alldep_list[*]}"
+echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
 # echo "${alldep_list[@]}" | sed 's/ /\n/g'
 
 # change dir to qt.plugins..
@@ -134,6 +202,7 @@ echo "alldep_list.len:${#alldep_list[*]}"
 if [ -d "$qtplugin_path" ]; then
     cd "$qtplugin_path"
     echo "(specified qtplugin_path) cd `pwd`"
+# donnot specified qtplugin_path
 else
     if [ -d "$qtlib_path/../plugins" ]; then
         cd "$qtlib_path/../plugins"
@@ -155,7 +224,7 @@ if [ ! -d "${target_path}/$dest" ]; then
     echo mkdir "$target_path/$dest"
 fi
 
-if [ $dont_mkplugindir != "1" ]; then
+if [ "$dont_mkplugindir" != "1" ]; then
     plugin_lib="plugins"
     if [ ! -d "${target_path}/$plugin_lib" ]; then
         mkdir -p "${target_path}/$plugin_lib"
@@ -168,9 +237,11 @@ if [ $dont_mkplugindir != "1" ]; then
     echo "Prefix = ./" >> $qtconf
     echo "Plugins = $plugin_lib" >> $qtconf
 else
+    # remove qt.conf beacause don't need it
     qtconf="${target_path}/qt.conf"
     if [ -x "$qtconf" ]; then
         rm -f $qtconf
+        echo remove file:$qtconf
     fi
 fi
 
@@ -193,11 +264,6 @@ sudo cp -dr --parents "${plug_dlist[@]}" "${target_path}/${plugin_lib}"
 sudo chown -R ${USER}:${USER} "${target_path}"
 sudo chmod 755 -R "${target_path}"
 
-# qmake_path=`which qmake`
-# if [ -n "$qmake_path" ]; then
-#     if [ -L "$qmake_path" ]; then
-#         qmake_path=`readlink -nf "$qmake_path" 2>/dev/null`
-#     fi
-# else
-#     echo 'not in path'
-# fi
+echo "all dependent shared library copy to: ${target_path}/${dest}"
+echo "all qt plugins copy to: ${target_path}/${plugin_lib}"
+echo "finished."
