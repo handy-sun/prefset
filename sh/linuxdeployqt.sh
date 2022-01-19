@@ -24,10 +24,10 @@ app_name=`basename $target_app`
 
 i=0
 while [ $i -lt $argu_length ]; do
-    # echo i=$i ${argu_list[$i]} 
-    next_one=${argu_list[$((i+1))]}    
-    case "${argu_list[$i]}" in 
-        "-e")        
+    # echo i=$i ${argu_list[$i]}
+    next_one=${argu_list[$((i+1))]}
+    case "${argu_list[$i]}" in
+        "-e")
             if [ -d "$next_one" ]; then
                 abs_extra_dir=`cd "$next_one" ; pwd`
                 extra_plugin_list=(`find $abs_extra_dir -name '*.so*'`)
@@ -60,14 +60,14 @@ while [ $i -lt $argu_length ]; do
             dont_mkplugindir=1
         ;;
         "-D")
-            if [ -n "$next_one" ]; then
+            if [ -n "$next_one" ] && [[ "$next_one" != -* ]]; then
                 gen_appimage_desktop=$next_one
             else
                 gen_appimage_desktop=$app_name
             fi
 
             if [[ "$gen_appimage_desktop" != *.desktop ]]; then
-                gen_appimage_desktop="${gen_appimage_desktop}.desktop"
+                gen_appimage_desktop="${gen_appimage_desktop}_appimage.desktop"
             fi
             echo gen_appimage_desktop=$gen_appimage_desktop
         ;;
@@ -156,7 +156,7 @@ exclude_list=(
     # "libpcre.so.3"
     # "libXau.so.6"
     # "libXdmcp.so.6"
-    # "libbsd.so.0"    
+    # "libbsd.so.0"
 )
 exclude_str=`echo ${exclude_list[@]} | sed 's/ /|/g'`
 
@@ -181,7 +181,7 @@ for etp in ${extra_plugin_list[@]}; do
             dep_list+=("$ed")
         fi
     done
-done 
+done
 
 notfound_list=(`ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}'`)
 if [ ${#notfound_list[*]} -gt 0 ]; then
@@ -199,23 +199,23 @@ plug_dlist=()
 
 for var in ${dep_list[*]}; do
     if [ -L "$var" ]; then
-        reallink=`readlink -nf "$var" 2>/dev/null`        
+        reallink=`readlink -nf "$var" 2>/dev/null`
         real_dep_list+=("$reallink")
     fi
-    if [[ "$var" =~ "Gui" ]]; then              
+    if [[ "$var" =~ "Gui" ]]; then
         plug_dlist+=("platforms/libqxcb.so" "platforminputcontexts/" "platformthemes/" "iconengines/" "imageformats/")
         if [ -d "styles" ]; then
             plug_dlist+=("styles/")
         fi
-    elif [[ "$var" =~ "Network" ]]; then 
+    elif [[ "$var" =~ "Network" ]]; then
         plug_dlist+=("bearer/")
-    elif [[ "$var" =~ "Multimedia" ]]; then 
+    elif [[ "$var" =~ "Multimedia" ]]; then
         plug_dlist+=("mediaservice/" "audio/" "playlistformats/")
-    elif [[ "$var" =~ "Sql" ]]; then 
+    elif [[ "$var" =~ "Sql" ]]; then
         plug_dlist+=("sqldrivers/")
-    elif [[ "$var" =~ "PrintSupport" ]]; then 
+    elif [[ "$var" =~ "PrintSupport" ]]; then
         plug_dlist+=("printsupport/")
-    elif [[ "$var" =~ "Positioning" ]]; then 
+    elif [[ "$var" =~ "Positioning" ]]; then
         plug_dlist+=("position/")
     elif [[ "$var" =~ "OpenGL" || "$var" =~ "XcbQpa" ]]; then
         plug_dlist+=("xcbglintegrations/")
@@ -308,7 +308,7 @@ if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
 fi
 
 sudo cp ${icon_file} ${target_path} 2>/dev/null
-ln -sf "$run_shell" "$target_path/AppRun" 
+ln -sf "$run_shell" "$target_path/AppRun"
 
 icon_name=`basename ${icon_file}`
 icon_name=${icon_name%.*}
