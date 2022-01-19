@@ -20,10 +20,12 @@ fi
 
 argu_list=(${argu_list[@]})
 argu_length=${#argu_list[*]}
+app_name=`basename $target_app`
 
 i=0
 while [ $i -lt $argu_length ]; do
-    # echo i=$i ${argu_list[$i]} next_one=${argu_list[$((i+1))]}    
+    # echo i=$i ${argu_list[$i]} 
+    next_one=${argu_list[$((i+1))]}    
     case "${argu_list[$i]}" in 
         "-e")        
             if [ -d "$next_one" ]; then
@@ -52,15 +54,44 @@ while [ $i -lt $argu_length ]; do
         "-p")
             if [ -d "$next_one/plugins" ]; then
                 qtplugin_path=`cd "$next_one/plugins" ; pwd`
-                echo qtplugin_path=$qtplugin_path
             fi
         ;;
         "-N")
             dont_mkplugindir=1
         ;;
+        "-D")
+            if [ -n "$next_one" ]; then
+                gen_appimage_desktop=$next_one
+            else
+                gen_appimage_desktop=$app_name
+            fi
+
+            if [[ "$gen_appimage_desktop" != *.desktop ]]; then
+                gen_appimage_desktop="${gen_appimage_desktop}.desktop"
+            fi
+            echo gen_appimage_desktop=$gen_appimage_desktop
+        ;;
+        "-i")
+            if [ -e "$next_one" ]; then
+                if [[ "$next_one" = *.png || "$next_one" = *.svg || "$next_one" = *.xpm ]]; then
+                    icon_file=$next_one
+                    echo icon_file=$icon_file
+                fi
+            fi
+        ;;
     esac
     let ++i
 done
+
+if [ -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
+    echo "'-D' is ok but '-i' can't work ."
+    exit -1
+fi
+
+if [ ! -n "$gen_appimage_desktop" -a -n "$icon_file" ]; then
+    echo "'-i' is ok but '-D' can't work ."
+    exit -1
+fi
 
 exclude_list=(
     "ld-linux.so.2"
@@ -141,8 +172,7 @@ for var in ${dep_list[*]}; do
     fi
 done
 var=""
-
-echo "dep_list=( ${dep_list[@]} )" | sed 's/ /\n/g'
+# echo "dep_list=( ${dep_list[@]} )" | sed 's/ /\n/g'
 
 for etp in ${extra_plugin_list[@]}; do
     extraplug_dep_list=(`ldd $etp 2>/dev/null | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
@@ -194,17 +224,17 @@ done
 
 alldep_list=(${dep_list[@]} ${real_dep_list[@]})
 
-echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
+# echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
 # echo "${alldep_list[@]}" | sed 's/ /\n/g'
 
 # change dir to qt.plugins..
 # specified qtplugin_path
 if [ -d "$qtplugin_path" ]; then
     cd "$qtplugin_path"
-    echo "(specified qtplugin_path) cd `pwd`"
+    echo "specified qtplugin's path: `pwd`"
 # donnot specified qtplugin_path
 else
-    if [ -d "$qtlib_path/../plugins" ]; then
+    if [ -d "$qtlib_path/../plugins/bearer" ]; then
         cd "$qtlib_path/../plugins"
         echo "cd `pwd`"
     elif [ -d "/usr/lib/qt/plugins/bearer" ]; then
@@ -222,6 +252,8 @@ dest="lib"
 if [ ! -d "${target_path}/$dest" ]; then
     mkdir -p "${target_path}/$dest"
     echo mkdir "$target_path/$dest"
+else
+    rm -rf "${target_path}/$dest/*"
 fi
 
 if [ "$dont_mkplugindir" != "1" ]; then
@@ -231,11 +263,12 @@ if [ "$dont_mkplugindir" != "1" ]; then
     fi
     # create qt.conf
     qtconf="${target_path}/qt.conf"
-    touch $qtconf
-    > $qtconf
-    echo "[Paths]" >> $qtconf
-    echo "Prefix = ./" >> $qtconf
-    echo "Plugins = $plugin_lib" >> $qtconf
+  cat > $qtconf << EOF
+[Paths]
+Prefix = ./
+Plugins = $plugin_lib
+EOF
+:
 else
     # remove qt.conf beacause don't need it
     qtconf="${target_path}/qt.conf"
@@ -245,17 +278,18 @@ else
     fi
 fi
 
-# create xxx.sh
-base_name=`basename $target_app`
-runshell="${target_path}/${base_name}.sh"
-touch $runshell
-> $runshell
-echo "#!/bin/bash" >> $runshell
-echo 'bin_dir=`dirname "$0"`' >> $runshell
-echo 'bin_dir=`cd "$bin_dir";pwd`' >> $runshell
-echo 'cd $bin_dir' >> $runshell
-echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$bin_dir/'"${dest}" >> $runshell
-echo 'exec "$bin_dir/'"${base_name}\"" >> $runshell
+# create $app_name.sh
+run_shell="${target_path}/${app_name}.sh"
+cat > "$run_shell" << "EOF"
+#!/bin/bash
+bin_dir=`dirname "$0"`
+bin_dir=`cd "$bin_dir" ; pwd`
+cd $bin_dir
+EOF
+cat >> "$run_shell" << EOF
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$bin_dir/${dest}
+exec "\$bin_dir/${app_name}"
+EOF
 
 # echo -e --${plug_dlist[@]}
 
@@ -266,4 +300,27 @@ sudo chmod 755 -R "${target_path}"
 
 echo "all dependent shared library copy to: ${target_path}/${dest}"
 echo "all qt plugins copy to: ${target_path}/${plugin_lib}"
+
+# create *.desktop
+if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
+    echo "finished."
+    exit 0
+fi
+
+sudo cp ${icon_file} ${target_path} 2>/dev/null
+ln -sf "$run_shell" "$target_path/AppRun" 
+
+icon_name=`basename ${icon_file}`
+icon_name=${icon_name%.*}
+
+cat > "$target_path/$gen_appimage_desktop" << EOF
+[Desktop Entry]
+Name=${app_name}
+Terminal=false
+Type=Application
+Categories=Development;
+Exec=AppRun
+Icon=${icon_name}
+EOF
+echo create "$target_path/$gen_appimage_desktop"
 echo "finished."
