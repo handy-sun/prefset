@@ -67,7 +67,7 @@ while [ $i -lt $argu_length ]; do
             fi
 
             if [[ "$gen_appimage_desktop" != *.desktop ]]; then
-                gen_appimage_desktop="${gen_appimage_desktop}_appimage.desktop"
+                gen_appimage_desktop="${gen_appimage_desktop}-appimage.desktop"
             fi
             echo gen_appimage_desktop=$gen_appimage_desktop
         ;;
@@ -279,14 +279,15 @@ else
 fi
 
 # create $app_name.sh
-run_shell="${target_path}/${app_name}.sh"
-cat > "$run_shell" << "EOF"
+sh_name="${app_name}.sh"
+cat > "${target_path}/$sh_name" << "EOF"
 #!/bin/bash
-bin_dir=`dirname "$0"`
+real_link=`readlink -nf "$0"`
+bin_dir=`dirname "$real_link"`
 bin_dir=`cd "$bin_dir" ; pwd`
 cd $bin_dir
 EOF
-cat >> "$run_shell" << EOF
+cat >> "${target_path}/$sh_name" << EOF
 export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$bin_dir/${dest}
 exec "\$bin_dir/${app_name}"
 EOF
@@ -308,7 +309,7 @@ if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
 fi
 
 sudo cp ${icon_file} ${target_path} 2>/dev/null
-ln -sf "$run_shell" "$target_path/AppRun"
+ln -sf "$sh_name" "$target_path/AppRun"
 
 icon_name=`basename ${icon_file}`
 icon_name=${icon_name%.*}
