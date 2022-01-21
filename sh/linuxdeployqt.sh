@@ -1,4 +1,28 @@
 #!/bin/bash
+show_opts()
+{
+    if [[ $LANG = zh_CN* ]]; then
+        echo "linuxdeployqt.sh 是一个在Linux用来打包qt依赖库的脚本程序."
+        echo "用法: linuxdeployqt 打包的程序 [选项] ... "
+        echo "选项:"
+        echo "  -p, --plugins     指定一个qt的路径，其子目录必须包含名为'plugins'的插件目录，"
+        echo "                    若环境变量中已包含qt路径可不指定此选项；找不到正确的插件目录将终止脚本"
+        echo "  -e, --extra       打包一组额外的库的依赖"
+        echo "  -v,--version      specify the version number,if not set,it will get it from changlog"
+        echo "  -n,-r,--release   set the release number,if not set,it will get it from changelog"
+        echo "  -h,--help       show helps"
+    else
+        echo "linuxdeployqt.sh is shell for deploy qt libraries on linux."
+        echo "Usage: linuxdeployqt deploy_filename [OPTION] ... "
+        echo "Options:"
+        echo "  -p, --plugins     specify the directory which contains 'plugins' of qt."
+        echo "  -e, --extra       specify extra depend files,"
+        echo "  -v,--version      specify the version number,if not set,it will get it from changlog"
+        echo "  -n,-r,--release   set the release number,if not set,it will get it from changelog"
+        echo "  -h,--help       show helps"
+    fi
+}
+
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
