@@ -5,41 +5,50 @@ show_opts()
         echo "linuxdeployqt.sh 是一个在Linux用来打包qt依赖库的脚本程序."
         echo "用法: linuxdeployqt 打包的程序 [选项] ... "
         echo "选项:"
-        echo "  -p, --plugins     指定一个qt的路径，其子目录必须包含名为'plugins'的插件目录，"
-        echo "                    若环境变量中已包含qt路径可不指定此选项；找不到正确的插件目录将终止脚本"
-        echo "  -e, --extra       打包一组额外的库的依赖"
-        echo "  -v,--version      specify the version number,if not set,it will get it from changlog"
-        echo "  -n,-r,--release   set the release number,if not set,it will get it from changelog"
-        echo "  -h,--help       show helps"
+        echo "  -p,   指定一个路径，其子目录必须包含名为'plugins'的qt插件目录，"
+        echo "        若环境变量中已包含此路径可不指定此选项；找不到正确的插件目录将终止脚本"
+        echo "  -e,   打包一组额外的库的依赖，后边可跟 1、这些库所在的文件夹；2、通配符组成的库列表；"
+        echo "        3、每个库的路径，以','分隔开"
+        echo "  -N,   所有插件将放在和打包的程序同一级目录下（默认放在打包程序目录下的plugins目录下）"
+        echo "  -D,   生成用于appimagetool打包所用的desktop文件的名称（无需扩展名），若不指定名称则自动生成；"
+        echo "        注意：若指定此选项，那 -i 也必须指定"
+        echo "  -i,   指定desktop文件所需的图标文件（后缀名为 .png，.svg，.xpm）"
+        echo "  -h,   查看帮助信息"
+        echo " "
     else
         echo "linuxdeployqt.sh is shell for deploy qt libraries on linux."
         echo "Usage: linuxdeployqt deploy_filename [OPTION] ... "
         echo "Options:"
-        echo "  -p, --plugins     specify the directory which contains 'plugins' of qt."
-        echo "  -e, --extra       specify extra depend files,"
-        echo "  -v,--version      specify the version number,if not set,it will get it from changlog"
-        echo "  -n,-r,--release   set the release number,if not set,it will get it from changelog"
-        echo "  -h,--help       show helps"
+        echo "  -p,   specify the directory which contains 'plugins' of qt."
+        echo "  -e,   specify extra depend files,"
+        echo "  -v,   specify the version number,if not set,it will get it from changlog"
+        echo "  -n,   set the release number,if not set,it will get it from changelog"
+        echo "  -h,   show helps"
     fi
+}
+
+get_dependent_list()
+{
+    _arr=(`ldd $1 2>/dev/null | awk '(match($3, "/")) { printf("%s %s\n"), $1, $3 }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
+    echo ${_arr[@]}
 }
 
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
 
+if [ $target_app == "-h" -o $argu_length -eq 0 ]; then
+    show_opts
+    exit
+fi
+
 if [ ! -x $target_app ]; then
     echo \'$target_app\' is not exist or cannot run.
     exit
 fi
-if [ $argu_length -eq 0 ]; then
-    target_app="-h"
-elif [ $argu_length -gt 0 ]; then
-    unset argu_list[0]
-fi
 
-if [ $target_app == "-h" ]; then
-    echo "show usage help"
-    exit
+if [ $argu_length -gt 0 ]; then
+    unset argu_list[0]
 fi
 
 argu_list=(${argu_list[@]})
@@ -99,6 +108,8 @@ while [ $i -lt $argu_length ]; do
             if [ -e "$next_one" ]; then
                 if [[ "$next_one" = *.png || "$next_one" = *.svg || "$next_one" = *.xpm ]]; then
                     icon_file=$next_one
+                    icon_name=`basename "$icon_file"`
+                    icon_file="$(cd `dirname "$icon_file"` ; pwd)/$icon_name"
                     echo icon_file=$icon_file
                 fi
             fi
@@ -112,10 +123,10 @@ if [ -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
     exit -1
 fi
 
-if [ ! -n "$gen_appimage_desktop" -a -n "$icon_file" ]; then
-    echo "'-i' is ok but '-D' can't work ."
-    exit -1
-fi
+# if [ ! -n "$gen_appimage_desktop" -a -n "$icon_file" ]; then
+#     echo "'-i' is ok but '-D' can't work ."
+#     exit -1
+# fi
 
 exclude_list=(
     "ld-linux.so.2"
@@ -185,11 +196,11 @@ exclude_list=(
 exclude_str=`echo ${exclude_list[@]} | sed 's/ /|/g'`
 
 # get app's dependent .so list(real need)
-# dep_list=(`ldd $target_app | awk '{if (match($3, "/") && match($1, "libQt|libicu")){printf("%s "), $3}}'`)
-dep_list=(`ldd $target_app | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
+# dep_list=(`ldd $target_app | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
+dep_list=(`get_dependent_list $target_app`)
 
 for var in ${dep_list[*]}; do
-    if [[ "$var" =~ "libQt" ]]; then
+    if [[ "$var" =~ "libQt5" ]]; then
         qtlib_path=$(cd `dirname "$var"` ; pwd)
         dep_list+=("$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
         break
@@ -199,7 +210,7 @@ var=""
 # echo "dep_list=( ${dep_list[@]} )" | sed 's/ /\n/g'
 
 for etp in ${extra_plugin_list[@]}; do
-    extraplug_dep_list=(`ldd $etp 2>/dev/null | awk '{ if (match($3, "/")){ printf("%s %s\n"), $1, $3 } }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
+    extraplug_dep_list=(`get_dependent_list $etp`)
     for ed in ${extraplug_dep_list[@]}; do
         if [[ ${dep_list[@]/${ed}/} == ${dep_list[@]} ]]; then
             dep_list+=("$ed")
@@ -207,49 +218,17 @@ for etp in ${extra_plugin_list[@]}; do
     done
 done
 
-notfound_list=(`ldd $target_app | awk '{if (match($3, "not")){printf("%s "), $1}}'`)
+notfound_list=(`ldd $target_app | awk '(match($3, "^not$")) { printf("%s "), $1 }'`)
 if [ ${#notfound_list[*]} -gt 0 ]; then
-    echo "some libraries don't found, check it and try again:( ${notfound_list[@]} )" | sed 's/ /\n/g'
+    echo "some libraries don't found, check it and try again."
+    echo "notfound_list:( ${notfound_list[@]} )" | sed 's/ /\n/g'
     exit -1
 fi
 
 target_path=$(cd `dirname "$target_app"` ; pwd)
-cd $target_path
+# cd $target_path
 
-echo qtlib_path=$qtlib_path
-
-real_dep_list=()
-plug_dlist=()
-
-for var in ${dep_list[*]}; do
-    if [ -L "$var" ]; then
-        reallink=`readlink -nf "$var" 2>/dev/null`
-        real_dep_list+=("$reallink")
-    fi
-    if [[ "$var" =~ "Gui" ]]; then
-        plug_dlist+=("platforms/libqxcb.so" "platforminputcontexts/" "platformthemes/" "iconengines/" "imageformats/")
-        if [ -d "styles" ]; then
-            plug_dlist+=("styles/")
-        fi
-    elif [[ "$var" =~ "Network" ]]; then
-        plug_dlist+=("bearer/")
-    elif [[ "$var" =~ "Multimedia" ]]; then
-        plug_dlist+=("mediaservice/" "audio/" "playlistformats/")
-    elif [[ "$var" =~ "Sql" ]]; then
-        plug_dlist+=("sqldrivers/")
-    elif [[ "$var" =~ "PrintSupport" ]]; then
-        plug_dlist+=("printsupport/")
-    elif [[ "$var" =~ "Positioning" ]]; then
-        plug_dlist+=("position/")
-    elif [[ "$var" =~ "OpenGL" || "$var" =~ "XcbQpa" ]]; then
-        plug_dlist+=("xcbglintegrations/")
-    fi
-done
-
-alldep_list=(${dep_list[@]} ${real_dep_list[@]})
-
-# echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
-# echo "${alldep_list[@]}" | sed 's/ /\n/g'
+echo qt5lib_path=$qtlib_path
 
 # change dir to qt.plugins..
 # specified qtplugin_path
@@ -270,7 +249,45 @@ else
     fi
 fi
 
-# exit 0
+real_dep_list=()
+plug_dlist=()
+
+for var in ${dep_list[*]}; do
+    if [ -L "$var" ]; then
+        reallink=`readlink -nf "$var" 2>/dev/null`
+        real_dep_list+=("$reallink")
+    fi
+    if [[ "$var" =~ "Gui" ]]; then
+        gui_temp_list=("platforms/libqxcb.so" "platforminputcontexts/" "platformthemes/" "iconengines/" "imageformats/" "styles/")
+        for _vartemp in ${gui_temp_list[*]}; do
+            if [ -e "$_vartemp" ]; then
+                plug_dlist+=($_vartemp)
+            fi
+        done 
+    elif [[ "$var" =~ "Network" ]]; then
+        plug_dlist+=("bearer/")
+    elif [[ "$var" =~ "Multimedia" ]]; then
+        media_temp_list=("mediaservice/" "audio/" "playlistformats/")
+        for _vartemp in ${media_temp_list[*]}; do
+            if [ -d "$_vartemp" ]; then
+                plug_dlist+=($_vartemp)
+            fi
+        done 
+    elif [[ "$var" =~ "Sql" ]]; then
+        plug_dlist+=("sqldrivers/")
+    elif [[ "$var" =~ "PrintSupport" ]]; then
+        plug_dlist+=("printsupport/")
+    elif [[ "$var" =~ "Positioning" ]]; then
+        plug_dlist+=("position/")
+    elif [[ "$var" =~ "OpenGL" || "$var" =~ "XcbQpa" ]]; then
+        plug_dlist+=("xcbglintegrations/")
+    fi
+done
+
+alldep_list=(${dep_list[@]} ${real_dep_list[@]})
+echo "${plug_dlist[@]}" 
+# echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
+# echo "${alldep_list[@]}" | sed 's/ /\n/g'
 
 dest="lib"
 if [ ! -d "${target_path}/$dest" ]; then
@@ -324,7 +341,7 @@ sudo chown -R ${USER}:${USER} "${target_path}"
 sudo chmod 755 -R "${target_path}"
 
 echo "all dependent shared library copy to: ${target_path}/${dest}"
-echo "all qt plugins copy to: ${target_path}/${plugin_lib}"
+echo "all dependent qt plugins copy to: ${target_path}/${plugin_lib}"
 
 # create *.desktop
 if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
@@ -332,10 +349,9 @@ if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
     exit 0
 fi
 
-sudo cp ${icon_file} ${target_path} 2>/dev/null
+sudo cp ${icon_file} ${target_path} 
 ln -sf "$sh_name" "$target_path/AppRun"
 
-icon_name=`basename ${icon_file}`
 icon_name=${icon_name%.*}
 
 cat > "$target_path/$gen_appimage_desktop" << EOF
