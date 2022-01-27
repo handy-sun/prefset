@@ -3,27 +3,35 @@ show_opts()
 {
     if [[ $LANG = zh_CN* ]]; then
         echo "linuxdeployqt.sh 是一个在Linux用来打包qt依赖库的脚本程序."
-        echo "用法: linuxdeployqt 打包的程序 [选项] ... "
+        echo "用法: linuxdeployqt 打包的程序 [选项] <参数> [选项] <参数> ... "
         echo "选项:"
         echo "  -p,   指定一个路径，其子目录必须包含名为'plugins'的qt插件目录，"
         echo "        若环境变量中已包含此路径可不指定此选项；找不到正确的插件目录将终止脚本"
-        echo "  -e,   打包一组额外的库的依赖，后边可跟 1、这些库所在的文件夹；2、通配符组成的库列表；"
+        echo "  -e,   打包一组额外的库的依赖，后边可跟: 1、这些库所在的文件夹；2、通配符组成的库列表；"
         echo "        3、每个库的路径，以','分隔开"
-        echo "  -N,   所有插件将放在和打包的程序同一级目录下（默认放在打包程序目录下的plugins目录下）"
-        echo "  -D,   生成用于appimagetool打包所用的desktop文件的名称（无需扩展名），若不指定名称则自动生成；"
+        echo "  -N,   所有插件将放在和打包的程序同一级目录下（默认放在打包程序目录下的plugins文件夹下）"
+        echo "  -D,   指定用于appimagetool打包所用的desktop文件的名称（无需扩展名），若不指定名称则自动生成；"
         echo "        注意：若指定此选项，那 -i 也必须指定"
-        echo "  -i,   指定desktop文件所需的图标文件（后缀名为 .png，.svg，.xpm）"
+        echo "  -i,   指定desktop文件所需的图标文件（后缀名为: .png，.svg，.xpm）"
         echo "  -h,   查看帮助信息"
         echo " "
     else
-        echo "linuxdeployqt.sh is shell for deploy qt libraries on linux."
-        echo "Usage: linuxdeployqt deploy_filename [OPTION] ... "
+        echo "linuxdeployqt.sh is a shell script for deploy qt libraries on linux."
+        echo "Usage: linuxdeployqt deploy_filename [OPTION] <ARGU> [OPTION] <ARGU> ... "
         echo "Options:"
-        echo "  -p,   specify the directory which contains 'plugins' of qt."
-        echo "  -e,   specify extra depend files,"
-        echo "  -v,   specify the version number,if not set,it will get it from changlog"
-        echo "  -n,   set the release number,if not set,it will get it from changelog"
+        echo "  -p,   specify the directory which contains a 'plugins' child directory of qt,"
+        echo "        it's not necessary to specify it if PATH contains;"
+        echo "        script will terminate if the directory is wrong."
+        echo "  -e,   package some extra files' depends, behind argu maybe: 1, the directory libs locate；"
+        echo "        2, the lib's list with wild card character； 3，every lib's path split with ','"
+        echo "  -N,   all plugins lib and deploy_file under the same directory(all plugins lib locate at a folder"
+        echo "        named plugins under deploy_file's path default)"
+        echo "  -D,   specify the desktop-file's name (donnot need extension name) which appimagetool used，"
+        echo "        if don't specify the name, a default desktop file generate automatical;"
+        echo "        Note：if specify this option，then options '-i' must be specified."
+        echo "  -i,   specify the icon-file's name which desktop-file needed(extension name: .png，.svg，.xpm) "
         echo "  -h,   show helps"
+        echo " "
     fi
 }
 
@@ -37,7 +45,7 @@ target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
 
-if [ $target_app == "-h" -o $argu_length -eq 0 ]; then
+if [ "$target_app" == "-h" -o $argu_length -eq 0 ]; then
     show_opts
     exit
 fi
