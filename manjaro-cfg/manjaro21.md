@@ -37,6 +37,11 @@ sudo pacman -Syy
 因为Arch Linux CN仓库是Arch Linux用户维护的第三方仓库。很多打包的二进制程序只适用于Arch Linux而非Manjaro。如果不注意，可能会出现软件不兼容的情况。
 
 ## 3. <font color="#e06c75" size="4"> 主目录文件夹名称改为英文 </font>
+
+(1)先去手动修改文件夹名称，然后在 设置 -> 应用程序 -> 地点 这修改
+
+(2)使用xdg-user-dirs-gtk
+
 ```bash
 sudo pacman -S xdg-user-dirs-gtk
 export LANG=en_US
@@ -47,6 +52,7 @@ xdg-user-dirs-gtk-update
 export LANG=zh_CN.UTF-8
 ```
 然后重启电脑如果提示语言更改，保留旧的名称即可,新版可能不生效，在Dolphin左侧侧边栏中进入每个文件夹的 编辑 属性，手动指定下新的英文路径即可
+
 
 ## 4. <font color="#e06c75" size="4"> fcitx框架和搜狗拼音输入法 </font>
 ```bash
