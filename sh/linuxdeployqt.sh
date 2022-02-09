@@ -71,7 +71,7 @@ while [ $i -lt $argu_length ]; do
         "-e")
             if [ -d "$next_one" ]; then
                 abs_extra_dir=`cd "$next_one" ; pwd`
-                extra_plugin_list=(`find $abs_extra_dir -name '*.so*'`)
+                extra_plugin_list=(`find $abs_extra_dir -maxdepth 1 -name '*.so*'`)
             else
                 j=$((i+1))
                 while [ $j -lt $argu_length ]; do
