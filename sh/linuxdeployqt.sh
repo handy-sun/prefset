@@ -3,6 +3,7 @@ show_opts()
 {
     if [[ $LANG = zh_CN* ]]; then
         echo "linuxdeployqt.sh 是一个在Linux用来打包qt依赖库的脚本程序."
+        echo "版本: $script_version"
         echo "用法: linuxdeployqt 打包的程序 [选项] <参数> [选项] <参数> ... "
         echo "选项:"
         echo "  -p,   指定一个路径，其子目录必须包含名为'plugins'的qt插件目录，"
@@ -10,13 +11,14 @@ show_opts()
         echo "  -e,   打包一组额外的库的依赖，后边可跟: 1、这些库所在的文件夹；2、通配符组成的库列表；"
         echo "        3、每个库的路径，以','分隔开"
         echo "  -N,   所有插件将放在和打包的程序同一级目录下（默认放在打包程序目录下的plugins文件夹下）"
-        echo "  -D,   指定用于appimagetool打包所用的desktop文件的名称（无需扩展名），若不指定名称则自动生成；"
+        echo "  -D,   指定用于appimagetool打包所用的desktop文件的名称（无需扩展名），若不指定名称则自动生成"
         echo "        注意：若指定此选项，那 -i 也必须指定"
         echo "  -i,   指定desktop文件所需的图标文件（后缀名为: .png，.svg，.xpm）"
         echo "  -h,   查看帮助信息"
         echo " "
     else
         echo "linuxdeployqt.sh is a shell script for deploy qt libraries on linux."
+        echo "Version: $script_version"
         echo "Usage: linuxdeployqt deploy_filename [OPTION] <ARGU> [OPTION] <ARGU> ... "
         echo "Options:"
         echo "  -p,   specify the directory which contains a 'plugins' child directory of qt,"
@@ -27,7 +29,7 @@ show_opts()
         echo "  -N,   all plugins lib and deploy_file under the same directory(all plugins lib locate at a folder"
         echo "        named plugins under deploy_file's path default)"
         echo "  -D,   specify the desktop-file's name (donnot need extension name) which appimagetool used，"
-        echo "        if don't specify the name, a default desktop file generate automatical;"
+        echo "        if don't specify the name, a default desktop file generate automatical"
         echo "        Note：if specify this option，then options '-i' must be specified."
         echo "  -i,   specify the icon-file's name which desktop-file needed(extension name: .png，.svg，.xpm) "
         echo "  -h,   show helps"
@@ -40,7 +42,7 @@ get_dependent_list()
     _arr=(`ldd $1 2>/dev/null | awk '(match($3, "/")) { printf("%s %s\n"), $1, $3 }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
     echo ${_arr[@]}
 }
-
+script_version="1.0.1"
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
@@ -208,14 +210,19 @@ exclude_str=`echo ${exclude_list[@]} | sed 's/ /|/g'`
 dep_list=(`get_dependent_list $target_app`)
 
 for var in ${dep_list[*]}; do
-    if [[ "$var" =~ "libQt5" ]]; then
+    if [[ "$var" =~ "libQt5Core" ]]; then
         qtlib_path=$(cd `dirname "$var"` ; pwd)
         dep_list+=("$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
-        break
+    elif [[ "$var" =~ "libQt5Gui" ]]; then
+        qtlib_path=$(cd `dirname "$var"` ; pwd)
+        dep_list+=("$qtlib_path/libQt5Svg.so.5")
     fi
 done
-var=""
+# make array's item unique
+dep_list=($(awk -v RS=' ' '!a[$1]++' <<< ${dep_list[@]}))
 # echo "dep_list=( ${dep_list[@]} )" | sed 's/ /\n/g'
+
+var=""
 
 for etp in ${extra_plugin_list[@]}; do
     extraplug_dep_list=(`get_dependent_list $etp`)
@@ -228,31 +235,31 @@ done
 
 notfound_list=(`ldd $target_app | awk '(match($3, "^not$")) { printf("%s "), $1 }'`)
 if [ ${#notfound_list[*]} -gt 0 ]; then
-    echo "some libraries don't found, check it and try again."
-    echo "notfound_list:( ${notfound_list[@]} )" | sed 's/ /\n/g'
+    echo "Some libraries don't found, check it and try again."
+    echo "Notfound_list:( ${notfound_list[@]} )" | sed 's/ /\n/g'
     exit -1
 fi
 
 target_path=$(cd `dirname "$target_app"` ; pwd)
 # cd $target_path
 
-echo qt5lib_path=$qtlib_path
+echo Qt5lib_path = $qtlib_path
 
 # change dir to qt.plugins..
 # specified qtplugin_path
 if [ -d "$qtplugin_path" ]; then
     cd "$qtplugin_path"
-    echo "specified qtplugin's path: `pwd`"
+    echo "Specified qtplugin's path: `pwd`"
 # donnot specified qtplugin_path
 else
     if [ -d "$qtlib_path/../plugins/bearer" ]; then
         cd "$qtlib_path/../plugins"
-        echo "cd `pwd`"
+        echo "Change dir to `pwd`"
     elif [ -d "/usr/lib/qt/plugins/bearer" ]; then
         cd "/usr/lib/qt/plugins"
-        echo "cd /usr/lib/qt/plugins"
+        echo "Change dir to /usr/lib/qt/plugins"
     else
-        echo "cannot find qt plugins directory!"
+        echo "Cannot find qt plugins directory!"
         exit -1
     fi
 fi
@@ -293,14 +300,14 @@ for var in ${dep_list[*]}; do
 done
 
 alldep_list=(${dep_list[@]} ${real_dep_list[@]})
-echo "${plug_dlist[@]}" 
+# echo "${plug_dlist[@]}" 
 # echo "all dependent shared library count(contain symbollink): ${#alldep_list[*]}"
 # echo "${alldep_list[@]}" | sed 's/ /\n/g'
 
 dest="lib"
 if [ ! -d "${target_path}/$dest" ]; then
     mkdir -p "${target_path}/$dest"
-    echo mkdir "$target_path/$dest"
+    echo Mkdir "$target_path/$dest"
 else
     rm -rf "${target_path}/$dest/*"
 fi
@@ -314,7 +321,6 @@ if [ "$dont_mkplugindir" != "1" ]; then
     qtconf="${target_path}/qt.conf"
   cat > $qtconf << EOF
 [Paths]
-Prefix = ./
 Plugins = $plugin_lib
 EOF
 :
@@ -348,12 +354,12 @@ sudo cp -dr --parents "${plug_dlist[@]}" "${target_path}/${plugin_lib}"
 sudo chown -R ${USER}:${USER} "${target_path}"
 sudo chmod 755 -R "${target_path}"
 
-echo "all dependent shared library copy to: ${target_path}/${dest}"
-echo "all dependent qt plugins copy to: ${target_path}/${plugin_lib}"
+echo "All dependent shared library copy to: ${target_path}/${dest}"
+echo "All dependent qt plugins copy to: ${target_path}/${plugin_lib}"
 
 # create *.desktop
 if [ ! -n "$gen_appimage_desktop" -a ! -n "$icon_file" ]; then
-    echo "finished."
+    echo "Finished."
     exit 0
 fi
 
@@ -372,4 +378,4 @@ Exec=AppRun
 Icon=${icon_name}
 EOF
 echo create "$target_path/$gen_appimage_desktop"
-echo "finished."
+echo "Finished."
