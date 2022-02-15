@@ -42,7 +42,7 @@ get_dependent_list()
     _arr=(`ldd $1 2>/dev/null | awk '(match($3, "/")) { printf("%s %s\n"), $1, $3 }' | egrep -v $exclude_str | awk '{ printf("%s\n"), $2}'`)
     echo ${_arr[@]}
 }
-script_version="1.0.1"
+script_version="1.0.2"
 target_app=$1
 argu_list=($@)
 argu_length=${#argu_list[*]}
@@ -212,10 +212,10 @@ dep_list=(`get_dependent_list $target_app`)
 for var in ${dep_list[*]}; do
     if [[ "$var" =~ "libQt5Core" ]]; then
         qtlib_path=$(cd `dirname "$var"` ; pwd)
-        dep_list+=("$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5")
+        dep_list+=("$qtlib_path/libQt5XcbQpa.so.5" "$qtlib_path/libQt5DBus.so.5" "$qtlib_path/libQt5PrintSupport.so.5")
     elif [[ "$var" =~ "libQt5Gui" ]]; then
         qtlib_path=$(cd `dirname "$var"` ; pwd)
-        dep_list+=("$qtlib_path/libQt5Svg.so.5")
+        dep_list+=("$qtlib_path/libQt5Svg.so.5" "$qtlib_path/libQt5OpenGL.so.5")
     fi
 done
 # make array's item unique
