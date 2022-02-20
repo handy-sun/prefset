@@ -13,8 +13,7 @@ fi
 
 i=0
 while [ $i -lt $len_real ]; do
-    # ln -sf ${real[$i]} ${softlink[$i]}
-    echo ${real[$i]} | grep -Eeo '*.so.[0-9]+$'
+    ln -sf ${real[$i]} ${softlink[$i]}
     # echo "${real[$i]} ${softlink[$i]}"
     let ++i
 done
