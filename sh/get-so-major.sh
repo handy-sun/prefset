@@ -1,21 +1,10 @@
-#!/bin/bash
 str="$1"
-if [ ! -n "$str" ]; then
-    exit -1
-fi
-dn=`dirname $str`
-str=`basename $str`
-idx=`expr index "$str" .so`
-idx=$(($idx+2))
-# echo idx=$idx
-left=${str:0:$idx}
-right=${str:$idx}
-echo right=$right, left=$left
-# echo "$right" | grep -o "\." | wc -l
-# expr "$str" : ".*\(\(.[0-9]\{1,3\}\)\{2\}\)"
-onedot=`expr "$right" : "\(\(.[0-9]\{1,3\}\)\{1\}\)"`
-if [ -n "$dn" ]; then
-    echo "${dn}/$left$onedot"
-else
-    echo $left$onedot
-fi
+bo_re=`echo "$str" | grep -bo "\.so"`
+idx=${bo_re%:*}
+lib_name=${str:0:$idx}
+onedot_num=`expr "$str" : ".*\.so\(\(.[0-9]\+\)\{1\}\)"`
+echo "${lib_name}.so${onedot_num}"
+# total - left(.so+.[0-9]+)
+total_count=`echo "$str" | grep -o "\." | wc -l`
+r_count=$((${total_count}-2))
+expr "$str" : ".*\(\(.[0-9]\+\)\{$r_count\}\)" 
