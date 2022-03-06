@@ -1,17 +1,20 @@
 #!/usr/bin/env python
+import string
 import sys
 import io
+import os
 import struct
+from xml.etree.ElementTree import tostring
 from PIL import Image
 
-def make_integar(s):
-    b = s.encode('ascii')
+def make_integar(s, is_string = True):
+    b = s.encode('ascii') if is_string else s
     return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]
 
 # if len(sys.argv) < 2:
 #     print("Please select a .png as input image!")
 #     sys.exit(-1)
-def write_to_file(fname, fsize, entries) :
+def write_to_file(fname, fsize, entries):
     byte_arr = io.BytesIO()
     # Header
     byte_arr.write(struct.pack('i', make_integar("icns"))[::-1])
@@ -31,7 +34,7 @@ def write_to_file(fname, fsize, entries) :
     ff.close()
     print('write %s, size: %ld B.' % (fname, len(byte_arr.getvalue())) )
 
-def compress_to_icns(out_icns, png_dict) :
+def compress_to_icns(out_icns, png_dict):
     HEADER_SIZE = 8
     fileSize = 8
     entries = []
@@ -57,6 +60,43 @@ def compress_to_icns(out_icns, png_dict) :
 
     write_to_file(out_icns, fileSize, entries)
 
+def uncompress_to_iconset(in_icns: str):
+    if not os.path.isfile(in_icns): 
+        print('don\'t exist :', in_icns)
+        return
+
+    fd = open(in_icns, 'rb')
+
+    header = fd.read(8)
+    sign, b = struct.unpack('4s4s', header)
+    real_len = os.path.getsize(in_icns)
+    flen = make_integar(b, False)
+
+    if str(sign, 'utf-8') != 'icns' or real_len != flen:
+        fd.close()
+        print('sign is wrong or real_len %d is not equal to len: %d' % (real_len, flen))
+        return
+    
+    iconset_dir = in_icns.replace('.icns', '.iconset')
+    if not os.path.isdir(iconset_dir):
+        os.mkdir(iconset_dir)
+    
+    # print()
+    while fd.tell() < real_len:
+        print('pos:', fd.tell())
+        header = fd.read(8)
+        sign, b = struct.unpack('4s4s', header)
+        block_len = make_integar(b, False)
+        image_bytes = fd.read(block_len - 8)
+        str_sign = str(sign, 'utf-8')   
+        suffix = '.png' if os_type_size_dict.get(str_sign, 0) != 0 else '.ico'
+        f = open(iconset_dir + '/' + str_sign + suffix, 'wb')
+        f.write(image_bytes)
+        f.flush()
+        f.close()
+
+    print('end_pos:', fd.tell())
+    fd.close()
 
 if __name__ == '__main__' :
     # 10种尺寸大小及标志
@@ -70,7 +110,8 @@ if __name__ == '__main__' :
         'ic09' : 512,
         'ic05' : 32,    
         'ic10' : 1024,# ( or 512x512@2x )
-        'ic11' : 32, # 16x16@2x     
+        'ic11' : 32, # 16x16@2x 
+        # 'is32' : 16,
     }
     arg_map = {}
     used_argv = sys.argv[1:]
@@ -79,9 +120,13 @@ if __name__ == '__main__' :
             arg_map[arg] = used_argv[idx + 1]
 
     icns_file = arg_map.get('-c')
+    unicns_file = arg_map.get('-x')
     if icns_file != None :
         del arg_map['-c']
         compress_to_icns(icns_file, arg_map)
+    elif unicns_file != None :
+        # del arg_map['-x']
+        uncompress_to_iconset(unicns_file)
 
 # bit_image = Image.open(src_file)
 # print(bit_image)
