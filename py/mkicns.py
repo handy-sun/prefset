@@ -1,19 +1,14 @@
 #!/usr/bin/env python
-import string
 import sys
 import io
 import os
 import struct
-from xml.etree.ElementTree import tostring
 from PIL import Image
 
 def make_integar(s, is_string = True):
     b = s.encode('ascii') if is_string else s
     return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3]
 
-# if len(sys.argv) < 2:
-#     print("Please select a .png as input image!")
-#     sys.exit(-1)
 def write_to_file(fname, fsize, entries):
     byte_arr = io.BytesIO()
     # Header
@@ -42,7 +37,7 @@ def compress_to_icns(out_icns, png_dict):
     for key, png_file in png_dict.items():
         cleaned_key = str(key).replace('-', '')        
         size = os_type_size_dict.get(cleaned_key)
-        if size != None :
+        if size != None:
             temp = io.BytesIO()
             bit_image = Image.open(png_file)
             print('clean = %s, png = %s' % (cleaned_key, png_file) )
@@ -81,7 +76,6 @@ def uncompress_to_iconset(in_icns: str):
     if not os.path.isdir(iconset_dir):
         os.mkdir(iconset_dir)
     
-    # print()
     while fd.tell() < real_len:
         print('pos:', fd.tell())
         header = fd.read(8)
@@ -98,7 +92,11 @@ def uncompress_to_iconset(in_icns: str):
     print('end_pos:', fd.tell())
     fd.close()
 
-if __name__ == '__main__' :
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Please select a *.png as input image!")
+        sys.exit(-1)
+
     # 10种尺寸大小及标志
     os_type_size_dict = {
         'ic12' : 64, # 32x32@2x
@@ -113,27 +111,25 @@ if __name__ == '__main__' :
         'ic11' : 32, # 16x16@2x 
         # 'is32' : 16,
     }
+
     arg_map = {}
     used_argv = sys.argv[1:]
-    for idx, arg in enumerate(used_argv) :
-        if idx % 2 == 0 and idx + 1 <= len(used_argv) :
+    for idx, arg in enumerate(used_argv):
+        if idx % 2 == 0 and idx + 1 <= len(used_argv):
             arg_map[arg] = used_argv[idx + 1]
 
     icns_file = arg_map.get('-c')
     unicns_file = arg_map.get('-x')
-    if icns_file != None :
+    if icns_file != None:
         del arg_map['-c']
         compress_to_icns(icns_file, arg_map)
-    elif unicns_file != None :
+    elif unicns_file != None:
         # del arg_map['-x']
         uncompress_to_iconset(unicns_file)
 
-# bit_image = Image.open(src_file)
-# print(bit_image)
-
 '''
-TOC = 'TOC '
 # TOC content
+TOC = 'TOC '
 tocSize = HEADER_SIZE + (len(entries) * HEADER_SIZE)
 byte_arr.write(struct.pack('i', make_integar(TOC))[::-1])
 byte_arr.write(struct.pack('i', tocSize)[::-1])
