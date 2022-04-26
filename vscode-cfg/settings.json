@@ -6,7 +6,6 @@
     "task.slowProviderWarning": [
         "npm"
     ],
-    "cmake.generator": "MinGW Makefiles",
     "cmake.configureOnOpen": true,
     "editor.columnSelection": false,
     "[cpp]": {
@@ -31,5 +30,33 @@
     "notebook.cellToolbarLocation": {
         "default": "right",
         "jupyter-notebook": "left"
+    },
+    "git.enableSmartCommit": true,
+    "workbench.preferredDarkColorTheme": "Atom One Dark",
+    "background.enabled": false,
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+    // 关闭检测第一个tab后面就tab
+    "editor.detectIndentation": false,
+    // 制表符显示->
+    "editor.renderControlCharacters": true,
+    // 空格显示...
+    "editor.renderWhitespace": "all", 
+    // tab为四个空格
+    "editor.tabSize": 4,
+    // 转为空格
+    "editor.insertSpaces": true,
+    "editor.quickSuggestions": {
+
+        "other": "on",
+        "comments": "off",
+        "strings": "off"
+    },
+    "editor.minimap.enabled": true,
+    "C_Cpp.autocomplete": "Default",
+    "[cpp]": {
+        "editor.quickSuggestions": true
+    },
+    "[c]": {
+        "editor.quickSuggestions": true
     }
 }
