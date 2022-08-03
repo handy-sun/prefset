@@ -1,0 +1,17 @@
+# Read more about SSH config files: https://linux.die.net/man/5/ssh_config
+Host sunq56.3
+    HostName 192.168.56.3
+    User sunq
+    IdentityFile "~/.ssh/id_vsc"
+
+
+# ###########################
+# VS code ssh免密登陆
+# 1. winows 下用ssh-keygen 生成公钥和秘钥（在 ~/.ssh 文件夹下使用git Bash）
+# 使用命令 ssh-keygen.exe -t rsa 
+# 例如 第一步命名密钥名称为id_vsc
+
+# 2.将公钥发送到服务器
+# ssh-copy-id -i .ssh/id_vsc.pub user@192.168.1.11
+
+# 3.vscode插件Remote Development配置好对应的服务器 , 其配置文件一般放在 "~/config"
