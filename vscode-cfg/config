@@ -14,4 +14,4 @@ Host sunq56.3
 # 2.将公钥发送到服务器
 # ssh-copy-id -i .ssh/id_vsc.pub user@192.168.1.11
 
-# 3.vscode插件Remote Development配置好对应的服务器 , 其配置文件一般放在 "~/config"
+# 3.vscode插件Remote Development配置好对应的服务器 , 其配置文件一般放在 "~/.ssh/config"
