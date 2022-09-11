@@ -16,7 +16,9 @@ alias gsh="git stash"
 alias gshl="git stash list"
 
 alias grs="git reset"
-alias grsh="git reset HEAD"
+alias grsh="git reset --hard"
+alias grss="git reset --soft"
+# alias grsH="git reset HEAD"
 
 alias glg="git log"
 alias glgo="git log --oneline"
