@@ -32,6 +32,8 @@ alias gme="git merge"
 alias grm="git rm"
 alias gblm="git blame -L"
 
+alias cmkln="rm -rf CMakeCache.txt CMakeFiles"
+
 # last_exit_code="\$(LEC=\$? ; if [[ \$LEC -ne 0 ]]; then echo -n '\[\e[0;91m\]'; else echo -n '\[\e[0m\]'; fi ; printf \"%3d\" \$LEC)"
 PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
 
