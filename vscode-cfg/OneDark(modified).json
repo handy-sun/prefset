@@ -1,0 +1,4 @@
+{ 
+    // 找到tokenColors的key，将其中jsonarray中首项的settings的内容修改，则注释颜色会为深绿色
+    "tokenColors":[{"name":"Comment","scope":["comment"],"settings":{"foreground":"#2D873A","fontStyle":"normal"}}
+]}
