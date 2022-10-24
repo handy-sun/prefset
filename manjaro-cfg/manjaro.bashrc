@@ -31,6 +31,7 @@ alias gck="git checkout"
 alias gme="git merge"
 alias grm="git rm"
 alias gblm="git blame -L"
+alias gaprj="git apply --reject"
 
 alias cmkln="rm -rf CMakeCache.txt CMakeFiles"
 
