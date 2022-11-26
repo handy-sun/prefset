@@ -1,4 +1,17 @@
 # custom bashrc
+shpo(){
+    git stash pop stash@{${1}};
+}
+shap(){
+    git stash apply stash@{${1}};
+}
+shsw(){
+    git stash show -p stash@{${1}};
+}
+shdr(){
+    git stash drop stash@{${1}};
+}
+
 alias ll="ls -lAF"
 alias rm="rm -f"
 alias gdb="gdb -q"
