@@ -1,17 +1,4 @@
 # custom bashrc
-shpo(){
-    git stash pop stash@{${1}};
-}
-shap(){
-    git stash apply stash@{${1}};
-}
-shsw(){
-    git stash show -p stash@{${1}};
-}
-shdr(){
-    git stash drop stash@{${1}};
-}
-
 alias ll="ls -lAF"
 alias rm="rm -f"
 alias gdb="gdb -q"
@@ -33,9 +20,8 @@ alias grs="git reset"
 alias grsh="git reset --hard"
 alias grss="git reset --soft"
 
-alias glg="git log"
-alias glgo="git log --oneline"
-alias glgp="git log --graph"
+alias glg="git lg"
+alias glgp="git lgp"
 
 alias gdf="git diff"
 alias gdfh="git diff HEAD"
@@ -49,8 +35,9 @@ alias gaprj="git apply --reject"
 alias cmkln="rm -rf CMakeCache.txt CMakeFiles"
 
 # last_exit_code="\$(LEC=\$? ; if [[ \$LEC -ne 0 ]]; then echo -n '\[\e[0;91m\]'; else echo -n '\[\e[0m\]'; fi ; printf \"%3d\" \$LEC)"
-PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
-
+if [[ "`echo $SHELL | grep bash`" != "" ]]; then
+    PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
+fi
 # profile
 export HISTTIMEFORMAT='%F %T '
 
