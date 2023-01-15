@@ -20,8 +20,8 @@ alias grs="git reset"
 alias grsh="git reset --hard"
 alias grss="git reset --soft"
 
-alias glg="git lg"
-alias glgp="git lgp"
+alias glg="git log --pretty=format:'%Cred%h%Creset -%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset %C(yellow)%d' --abbrev-commit --color"
+alias glp="git log --pretty=format:'%Cred%h%Creset -%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset %C(yellow)%d' --abbrev-commit --color --graph"
 
 alias gdf="git diff"
 alias gdfh="git diff HEAD"
