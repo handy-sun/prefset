@@ -9,7 +9,12 @@
     "cmake.configureOnOpen": true,
     "editor.columnSelection": false,
     "[cpp]": {
-        "editor.defaultFormatter": "ms-vscode.cpptools"
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
     },
     "C_Cpp.clang_format_fallbackStyle": "LLVM",
     "python.showStartPage": false,
@@ -32,7 +37,6 @@
         "jupyter-notebook": "left"
     },
     "git.enableSmartCommit": true,
-    "workbench.preferredDarkColorTheme": "Atom One Dark",
     "background.enabled": false,
     "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
     // 关闭检测第一个tab后面就tab
@@ -51,12 +55,187 @@
         "comments": "off",
         "strings": "off"
     },
-    "editor.minimap.enabled": true,
+    "editor.minimap.enabled": false,
     "C_Cpp.autocomplete": "Default",
     "[cpp]": {
         "editor.quickSuggestions": true
     },
     "[c]": {
-        "editor.quickSuggestions": true
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        },
+        // "editor.defaultFormatter": "chiehyu.vscode-astyle"
+    },
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "files.autoSave": "afterDelay",
+    "hexeditor.columnWidth": 16,
+    "hexeditor.showDecodedText": true,
+    "hexeditor.defaultEndianness": "little",
+    "hexeditor.inspectorType": "aside",
+    "explorer.confirmDelete": false,
+    "git.confirmSync": false,
+    "diffEditor.ignoreTrimWhitespace": false,
+    "clangd.detectExtensionConflicts": false,
+    "git.openRepositoryInParentFolders": "never",
+    // "C_Cpp.intelliSenseEngine": "disabled"
+    // !!! custom theme
+    "editor.tokenColorCustomizations": {
+        "comments": "#57943d",
+        "textMateRules": [
+            {
+                "scope": [
+                    "entity.name.type", // typedef? 类型
+                    "storage.type.built-in.primitive.c", //自带的类型
+                    "storage.modifier", // const, static
+                    "storage.type", // struct class
+                    "keyword.operator.sizeof", // sizeof
+                    "constant.language" // .nullptr.cpp
+                ],
+                "settings": {
+                    "foreground": "#cc7832"
+                }
+            },
+            {
+                "scope": [
+                    "entity.name.function" // 函数
+                ],
+                "settings": {
+                    "foreground": "#4f92ec"
+                }
+            },
+            {
+                "scope": [
+                    "entity.name.function.member.static.cpp" // 静态成员函数
+                ],
+                "settings": {
+                    "foreground": "#4f92ec",
+                    "fontStyle": "bold"
+                }
+            },
+            // {
+            //     "scope": [
+            //         // 重载运算符函数
+            //         "meta.function.definition.special.operator-overload.cpp",
+            //     ],
+            //     "settings": {
+            //         "foreground": "#376ee4",
+            //         "fontStyle": "italic bold"
+            //     }
+            // },
+            {
+                "scope": [
+                    "entity.name.type.cpp" // type
+                ],
+                "settings": {
+                    "foreground": "#d6bf55"
+                }
+            },
+            {
+                "scope": [
+                    "entity.name.namespace" // namespace
+                ],
+                "settings": {
+                    "foreground": "#008080"
+                }
+            },
+            {
+                "scope": [
+                    "variable.other.enummember.cpp" // enum element
+                ],
+                "settings": {
+                    "foreground": "#ae8abe",
+                    "fontStyle": "italic bold"
+                }
+            },
+            {
+                "scope": [
+                    "constant.other.placeholder" // %d, %s, ...
+                ],
+                "settings": {
+                    "foreground": "#2caf72",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": [
+                    "keyword.operator",
+                    "meta.block.class.cpp",
+                    "storage.modifier.reference.cpp" // &
+                ],
+                "settings": {
+                    "foreground": "#aaaaaa"
+                }
+            },
+            {
+                "scope": [
+                    "variable.other.global" // global variable
+                ],
+                "settings": {
+                    "foreground": "#ce5c00",
+                    "fontStyle": "italic bold"
+                }
+            },
+            {
+                "scope": [
+                    "entity.name.function.preprocessor" // macro
+                ],
+                "settings": {
+                    "foreground": "#a056a7",
+                    "fontStyle": "bold"
+                }
+            },
+            {
+                "scope": [
+                    "keyword.control.directive" // #include, #ifdef, #define
+                ],
+                "settings": {
+                    "foreground": "#948b8b"
+                }
+            },
+            {
+                "scope": [
+                    "keyword.control" // if, return...
+                ],
+                "settings": {
+                    "foreground": "#9b733e"
+                }
+            },
+            {
+                "scope": [
+                    "variable.other.local", // 局部变量
+                    "variable.parameter" // 形参
+                ],
+                "settings": {
+                    "foreground": "#30bcbc"
+                }
+            },
+            {
+                "scope": [
+                    "variable.other.property" // 字段 Field(member variable)
+                ],
+                "settings": {
+                    "foreground": "#ff6b68"
+                }
+            },
+            {
+                "scope": [
+                    "variable.other.property.static.cpp"// static member variable
+                ],
+                "settings": {
+                    "foreground": "#ff6b68",
+                    "fontStyle": "italic bold"
+                }
+            },
+            {
+                "scope": [
+                    "constant.numeric" // 数值常量
+                ],
+                "settings": {
+                    "foreground": "#b5cea8"
+                }
+            }
+        ]
     }
 }
