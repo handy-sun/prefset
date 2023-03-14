@@ -80,6 +80,9 @@
     "clangd.detectExtensionConflicts": false,
     "git.openRepositoryInParentFolders": "never",
     // "C_Cpp.intelliSenseEngine": "disabled"
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c99",
+    "git.mergeEditor": false,
     // !!! custom theme
     "editor.tokenColorCustomizations": {
         "comments": "#57943d",
@@ -91,6 +94,7 @@
                     "storage.modifier", // const, static
                     "storage.type", // struct class
                     "keyword.operator.sizeof", // sizeof
+                    "keyword.operator.alignof", // alignof
                     "constant.language" // .nullptr.cpp
                 ],
                 "settings": {
@@ -114,16 +118,6 @@
                     "fontStyle": "bold"
                 }
             },
-            // {
-            //     "scope": [
-            //         // 重载运算符函数
-            //         "meta.function.definition.special.operator-overload.cpp",
-            //     ],
-            //     "settings": {
-            //         "foreground": "#376ee4",
-            //         "fontStyle": "italic bold"
-            //     }
-            // },
             {
                 "scope": [
                     "entity.name.type.cpp" // type
@@ -134,7 +128,8 @@
             },
             {
                 "scope": [
-                    "entity.name.namespace" // namespace
+                    "entity.name.namespace", // namespace
+                    "storage.modifier.package.java"
                 ],
                 "settings": {
                     "foreground": "#008080"
@@ -188,6 +183,7 @@
             },
             {
                 "scope": [
+                    "support.other.attribute.cpp",// __attribute__
                     "keyword.control.directive" // #include, #ifdef, #define
                 ],
                 "settings": {
