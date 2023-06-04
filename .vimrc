@@ -129,10 +129,9 @@ set guioptions-=T           " 隐藏工具栏
 set guioptions-=m           " 隐藏菜单栏
 "set statusline=\ %<%F[%1*%M%*%n%R%H]%=\ %y\ %0(%{&fileformat}\ %{&encoding}\ %c:%l/%L%)\
 " 设置在状态行显示的信息
-set foldcolumn=0
-set foldmethod=indent 
-set foldlevel=1 
-set foldenable              " 开始折叠
+" set foldcolumn=0
+" set foldmethod=indent 
+" set foldlevel=1 
 " 不要使用vi的键盘模式，而是vim自己的
 set nocompatible
 " 语法高亮
