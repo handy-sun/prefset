@@ -130,8 +130,7 @@ set guioptions-=m           " 隐藏菜单栏
 "set statusline=\ %<%F[%1*%M%*%n%R%H]%=\ %y\ %0(%{&fileformat}\ %{&encoding}\ %c:%l/%L%)\
 " 设置在状态行显示的信息
 " set foldcolumn=0
-" set foldmethod=indent 
-" set foldlevel=1 
+" set foldlevel=1
 " 不要使用vi的键盘模式，而是vim自己的
 set nocompatible
 " 语法高亮
@@ -152,7 +151,6 @@ set shiftwidth=4
 "set noexpandtab
 " 在行和段开始处使用制表符
 "set smarttab
-" 显示行号
 " 历史记录数
 set history=1000
 "禁止生成临时文件
