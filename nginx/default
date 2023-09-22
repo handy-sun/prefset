@@ -1,0 +1,44 @@
+# file location: /etc/nginx/sites-enabled
+server {
+	listen 8081;
+	
+	charset utf-8;
+	root /var/www/shared;
+
+	index index.html; # index.htm index.nginx-debian.html;
+
+	# !!!!!!
+	server_name hpnu.cn;
+
+	add_header cache-control "no-cache";
+	add_header access-control-allow-origin "*";
+	add_header referrer-policy "no-referrer";
+	add_header x-content-type-options nosniff;
+	add_header x-xss-protection "1; mode=block";
+	add_header x-frame-options sameorigin;
+
+	location = /autoindex.html {
+		root   /var/www/html;
+	}
+
+	location = /favicon.ico {
+		root /var/www;
+	}
+
+	location / {
+		autoindex on;
+		autoindex_exact_size off;
+		autoindex_localtime on;
+		add_after_body /autoindex.html;
+		# First attempt to serve request as file, then as directory, then fall back to displaying a 404.
+		try_files $uri $uri/ =404;
+	}
+
+	# location ~ \.(md|ini|txt|log|pac|keys|lua|json|yaml|toml|conf|cmd|sh|bash|h|c|cpp|hpp|py|go|service)$ {
+	#	 default_type text/plain; # |sql|php|hh|cc
+	# }
+
+	# location ~ ^/(bashrc|vimrc)$ {
+	#   default_type text/plain;
+	# }
+}
