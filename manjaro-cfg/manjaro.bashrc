@@ -70,7 +70,7 @@ alias sydis="sudo systemctl disable"
 export BUILD_DIR="./build"
 alias cmkln="rm -rf ${BUILD_DIR}/CMakeCache.txt ${BUILD_DIR}/CMakeFiles/"
 alias cmkg="cmake -B${BUILD_DIR} -G 'Ninja'"
-alias cmball="cmake --build ${BUILD_DIR}"
+alias cmba="cmake --build ${BUILD_DIR}"
 alias cmb="cmake --build ${BUILD_DIR} -t"
 
 # other shell
@@ -94,6 +94,8 @@ if [ $? -eq 0 ]; then
     PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
 fi
 
+unset _trash
+unset _is_bash
 # some env var
 # history format only worked for bash; zsh can use 'history -i', see 'man zshoptions'
 export HISTTIMEFORMAT='%F %T '
