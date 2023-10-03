@@ -18,7 +18,7 @@ while [ $i -lt ${device_count} ]; do
         fi
     done
     tar_dir=/mnt/$(echo -ne "\x$((ch_hex + i))")
-    isHasFile=`ls $tar_dir | wc -l`
+    isHasFile=`ls $tar_dir 2>/dev/null | wc -l`
     if [[ $isIn -eq 0 && isHasFile -eq 0 ]]; then
         if [ ! -d "$tar_dir" ]; then
             mkdir -p $tar_dir
