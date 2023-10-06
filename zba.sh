@@ -22,6 +22,7 @@ finloc(){
 }
 # git
 alias gta="git status"
+alias gts="git status -s"
 
 alias gcm="git commit"
 alias gcma="git commit -a"
@@ -70,21 +71,20 @@ alias sydis="sudo systemctl disable"
 export BUILD_DIR="./build"
 alias cmkln="rm -rf ${BUILD_DIR}/CMakeCache.txt ${BUILD_DIR}/CMakeFiles/"
 alias cmkg="cmake -B${BUILD_DIR} -G 'Ninja'"
+alias cmkd="cmake -B${BUILD_DIR} -G 'Ninja' -DCMAKE_BUILD_TYPE=Debug"
 alias cmba="cmake --build ${BUILD_DIR}"
 alias cmb="cmake --build ${BUILD_DIR} -t"
 
 # other shell
-alias pingx="ping -c 4 -s 1024 -t 10"
+alias pingk="ping -c 4 -s 1024"
 alias gdb="gdb -q"
 
 alias ll="ls -AlF"
 alias lh="ls -AlFh"
 alias la="ls -alF"
 
-_trash=`which trash 2>/dev/null`
-if [ $? -eq 0 ]; then
-    alias rm="trash"
-fi
+which trash >/dev/null 2>&1 && alias rm="trash"
+alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 
 # TODO: nvim
 
@@ -93,10 +93,10 @@ _is_bash=`echo $SHELL | grep bash`
 if [ $? -eq 0 ]; then
     PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
 fi
-
-unset _trash
 unset _is_bash
-# some env var
+
+# ----------------------- export some env var -------------------------
+#
 # history format only worked for bash; zsh can use 'history -i', see 'man zshoptions'
 export HISTTIMEFORMAT='%F %T '
 

@@ -1,3 +1,4 @@
+# location: %HOME%
 [wsl2]
 memory=4GB
 swap=4GB
