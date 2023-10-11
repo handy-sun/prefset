@@ -40,23 +40,6 @@ var github_markdown_css = 'https://lf6-cdn-tos.bytecdntp.com/cdn/expire-1-M/gith
 	head.add('meta').attr('charset', 'utf-8')
 	head.add('meta').attr('name', 'viewport').attr('content', 'width=device-width,initial-scale=1')
 
-	if (!document.title) {
-		document.write(["<div class=\"container\">",
-		"<h3>nginx.conf</h3>",
-		"<textarea rows=8 cols=50>",
-		"# download autoindex.html to /wwwroot/",
-		"location ~ ^(.*)/$ {",
-		"    charset utf-8;",
-		"    autoindex on;",
-		"    autoindex_localtime on;",
-		"    autoindex_exact_size off;",
-		"    add_after_body /autoindex.html;",
-		"}",
-		"</textarea>",
-		"</div>"].join("\n"))
-		return
-	}
-
 	var bodylines = document.body.innerHTML.split('\n')
 	document.body.innerHTML = ''
 
