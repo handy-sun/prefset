@@ -15,16 +15,16 @@ shdr(){
 }
 # get pid of a process, avoid some Linux system cannot use 'pgrep' command
 pgre(){
-    ps -ef | grep "${1}" | grep -v grep | awk '{print$2;}'
+    ps -ef | grep "${1} " | grep -v grep | awk '{print$2;}'
 }
 # same to pgre(), and it also print parent pid
 ppre(){
-    ps -ef | grep "${1}" | grep -v grep | awk '{print$2, $3;}'
+    ps -ef | grep "${1} " | grep -v grep | awk '{print$2, $3;}'
 }
 # final location of which command
 fwhich(){
     local whi=`which ${1} 2>/dev/null`
-    grep -E '^/*' ${whi} && readlink -f ${whi} || echo "Not found ${1}"
+    [ $? -eq 0 -a -x ${whi} 2>/dev/null ] && readlink -f ${whi} || echo "Error:${whi}"
 }
 # tar compress/uncompress with pigz
 tcpz(){
@@ -103,8 +103,9 @@ alias lh="ls -AlFh"
 alias la="ls -alF"
 
 which trash >/dev/null 2>&1 && alias rm="trash"
-alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
+which xclip >/dev/null 2>&1 && alias pbcopy="xclip -selection clipboard" && alias pbpaste="xclip -selection clipboard -o"
 
+alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 
 # only bash use this PS1.
 echo $SHELL | grep -E '/bash$' >/dev/null 2>&1
