@@ -1,4 +1,5 @@
 #/bin/bash
-ifconfig | grep "inet " | awk '{ print $2 }' | sed 's/addr://g'
+# get ipv4
+ip a | grep 'inet ' | grep -v ' lo' | awk '{print$2}' | cut -d/ -f1
 
 # (install mmnetwork) nmcli

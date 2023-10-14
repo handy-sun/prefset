@@ -15,11 +15,11 @@ shdr(){
 }
 # get pid of a process, avoid some Linux system cannot use 'pgrep' command
 pgre(){
-    ps -ef | grep "${1} " | grep -v grep | awk '{print$2;}'
+    ps -ef | grep "${1}" | grep -v grep | awk '{print$2;}'
 }
 # same to pgre(), and it also print parent pid
 ppre(){
-    ps -ef | grep "${1} " | grep -v grep | awk '{print$2, $3;}'
+    ps -ef | grep "${1}" | grep -v grep | awk '{print$2, $3;}'
 }
 # final location of which command
 fwhich(){
@@ -27,13 +27,16 @@ fwhich(){
     [ $? -eq 0 -a -x ${whi} 2>/dev/null ] && readlink -f ${whi} || echo "Error:${whi}"
 }
 # tar compress/uncompress with pigz
-tcpz(){
+tcpzf(){
     which pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
     tar cf - ${2} | pigz --fast > ${1}
 }
 txpz(){
     which pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
     tar --no-same-owner -xf ${1} -I pigz
+}
+dus(){
+	du $1 -alh -d1 | sort -rh | head -n 11
 }
 # ----------------------- alias ----------------------
 # git
@@ -70,7 +73,6 @@ alias gck="git checkout"
 alias grtv="git remote -v"
 alias gblm="git blame -L"
 alias gaprj="git apply --reject"
-
 # tar
 alias tarx="tar --no-same-owner -xf"
 alias tarz="tar zcf"
@@ -110,7 +112,9 @@ alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 # only bash use this PS1.
 echo $SHELL | grep -E '/bash$' >/dev/null 2>&1
 if [ $? -eq 0 ]; then
-    PS1="[\[\033[0;32m\]\A \[\033[0;31m\]\u\[\033[0;34m\] \[\033[00;36m\]\W\[\033[0;33m\]\[\e[0m\]] "
+    last_exit_code="\$(LEC=\$? ; [[ \$LEC -ne 0 ]] && printf \"\033[91m%d \033[0m\" \$LEC)"
+    PS1="\[\e[0m\]\[\033[0;34m\]\A \[\033[00;36m\]\w\[\033[0;33m\]\[\e[0m\] ${last_exit_code}\\$ "
+    unset last_exit_code
 fi
 
 # ----------------------- export some env var -------------------------
