@@ -113,7 +113,7 @@ alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 echo $SHELL | grep -E '/bash$' >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     last_exit_code="\$(LEC=\$? ; [[ \$LEC -ne 0 ]] && printf \"\033[91m%d \033[0m\" \$LEC)"
-    PS1="\[\e[0m\]\[\033[0;34m\]\A \[\033[00;36m\]\w\[\033[0;33m\]\[\e[0m\] ${last_exit_code}\\$ "
+    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\033[00;36m\]\w\[\033[0;33m\]\[\e[0m\] ${last_exit_code}\\$ "
     unset last_exit_code
 fi
 

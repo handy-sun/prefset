@@ -1,5 +1,3 @@
 #/bin/bash
-# get ipv4
-ip a | grep 'inet ' | grep -v ' lo' | awk '{print$2}' | cut -d/ -f1
-
-# (install mmnetwork) nmcli
+# get local ipv4
+ip -o -4 addr list | grep -Ev '\s(docker|lo)' | awk '{print $4}' | cut -d/ -f1
