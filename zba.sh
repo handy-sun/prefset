@@ -28,16 +28,33 @@ fwhich(){
 }
 # tar compress/uncompress with pigz
 tcpzf(){
-    which pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
+    type pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
     tar cf - ${2} | pigz --fast > ${1}
 }
 txpz(){
-    which pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
+    type pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
     tar --no-same-owner -xf ${1} -I pigz
 }
 dus(){
-	du $1 -alh -d1 | sort -rh | head -n 11
+    du $1 -alh -d1 | sort -rh | head -n 11
 }
+# get real network device local ipv4 address
+rlip4(){
+    ip -o -4 addr list | grep -Ev '\s(docker|lo)' | awk '{print $4}' | cut -d/ -f1
+}
+# quickly update git repo between remote and local
+gitur(){
+    set -x
+    local top_level=`git rev-parse --show-toplevel`
+    [ $? -eq 0 ] || return 1
+    git add $top_level
+    git commit
+    git pull --rebase && git push || echo handle conflicts first!
+}
+jnl(){
+    journalctl -eu $1 | less
+}
+
 # ----------------------- alias ----------------------
 # git
 alias gta="git status"
@@ -96,16 +113,36 @@ alias cmkd="cmake -B${BUILD_DIR} -G 'Ninja' -DCMAKE_BUILD_TYPE=Debug"
 alias cmba="cmake --build ${BUILD_DIR}"
 alias cmb="cmake --build ${BUILD_DIR} -t"
 
+# docker-compose
+if type docker-compose >/dev/null 2>&1; then
+    export CPO_YML="/var/dkcmpo/docker-compose.yml"
+    alias dkcpo="docker-compose -f $CPO_YML"
+    alias dkcps="docker-compose -f $CPO_YML ps"
+fi
+
+# pacman (archlinux/manjaro)
+if type pacman >/dev/null 2>&1; then
+    alias pkgins="sudo pacman -S"
+    alias pkginsy="sudo pacman -Sy"
+    alias pkguni="sudo pacman -Rs"
+    alias pkgss="pacman -Ss"
+    alias pkgsq="pacman -Ssq"
+    alias pkgqinf="pacman -Qi"
+    alias pkgqls="pacman -Ql"
+fi
+
 # other shell
 alias pingk="ping -c 4 -s 1024"
 alias gdb="gdb -q"
 
+[ -z "$LS_OPTIONS" ] && export LS_OPTIONS="--color=auto"
+alias ls="ls $LS_OPTIONS"
 alias ll="ls -AlF"
 alias lh="ls -AlFh"
 alias la="ls -alF"
 
-which trash >/dev/null 2>&1 && alias rm="trash"
-which xclip >/dev/null 2>&1 && alias pbcopy="xclip -selection clipboard" && alias pbpaste="xclip -selection clipboard -o"
+type trash >/dev/null 2>&1 && alias rm="trash"
+type xclip >/dev/null 2>&1 && alias pbcopy="xclip -selection clipboard" && alias pbpaste="xclip -selection clipboard -o"
 
 alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 
@@ -113,15 +150,15 @@ alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 echo $SHELL | grep -E '/bash$' >/dev/null 2>&1
 if [ $? -eq 0 ]; then
     last_exit_code="\$(LEC=\$? ; [[ \$LEC -ne 0 ]] && printf \"\033[91m%d \033[0m\" \$LEC)"
-    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\033[00;36m\]\w\[\033[0;33m\]\[\e[0m\] ${last_exit_code}\\$ "
+    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\033[00;36m\]\w\[\e[0m\] ${last_exit_code}\\$ "
     unset last_exit_code
 fi
 
 # ----------------------- export some env var -------------------------
 # history format only worked for bash; zsh can use 'history -i', see 'man zshoptions'
 export HISTTIMEFORMAT='%F %T '
-export HISTSIZE=5000
-export SAVEHIST=5000
+export HISTSIZE=3000
+export SAVEHIST=3000
 
 local_inc=$HOME/.local/include
 if [ -d $local_inc ]; then
