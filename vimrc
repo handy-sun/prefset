@@ -32,7 +32,7 @@ set visualbell t_vb=            " turn off error beep/flash
 set number                      " show line numbers
 set ruler                       " show the current row and column
 set showcmd                     " display incomplete commands
-set nowrap                      " ???
+"set nowrap                      " auto linefeed
 set showmode                    " display current modes
 set showmatch                   " jump to matches when entering parentheses
 set matchtime=1                 " tenths of a second to show the matching parenthesis

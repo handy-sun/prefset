@@ -134,6 +134,7 @@ fi
 # other shell
 alias pingk="ping -c 4 -s 1024"
 alias gdb="gdb -q"
+alias cp="cp -f"
 
 [ -z "$LS_OPTIONS" ] && export LS_OPTIONS="--color=auto"
 alias ls="ls $LS_OPTIONS"
