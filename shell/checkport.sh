@@ -7,15 +7,15 @@ fi
 
 n=1
 while true; do
-    CONTENT=`sudo netstat -antp | grep "$CHK_PORT"`
-    if [ ${#CONTENT} -gt 3 ]; then
+    CONTENT=`sudo netstat -antp | grep ":$CHK_PORT"`
+    if [ $? -eq 0 ]; then
         echo "port is in used!"
         break
     else
         echo "check port: $CHK_PORT repeat $n."
     fi
 
-    if [ $n -gt 5 ]; then
+    if [ $n -ge 3 ]; then
         echo "port is not in use"
         exit 1
     fi

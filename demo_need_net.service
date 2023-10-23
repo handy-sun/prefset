@@ -1,0 +1,15 @@
+[Unit]
+Description='demo daemon'
+After=syslog.target network-online.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hpc -deviceId=0efdcba
+KillSignal=SIGINT
+TimeoutStopSec=15
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
