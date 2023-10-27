@@ -17,16 +17,16 @@ shdr(){
 pgre(){
     ps -ef | grep "${1}" | grep -v grep | awk '{print$2;}'
 }
-# same to pgre(), and it also print parent pid
+# print all info
 ppre(){
-    ps -ef | grep "${1}" | grep -v grep | awk '{print$2, $3;}'
+    ps -ef | grep "${1}" | grep -v grep
 }
 # final location of which command
 fwhich(){
     local whi=`which ${1} 2>/dev/null`
     [ $? -eq 0 -a -x ${whi} 2>/dev/null ] && readlink -f ${whi} || echo "Error:${whi}"
 }
-# tar compress/uncompress with pigz
+# tar compress/uncompress gzip with pigz
 tcpzf(){
     type pigz >/dev/null 2>&1 || { echo "Not install pigz !"; return 1; }
     tar cf - ${2} | pigz --fast > ${1}
@@ -52,7 +52,7 @@ gitur(){
     git pull --rebase && git push || echo handle conflicts first!
 }
 jnl(){
-    journalctl -eu $1 | less
+    journalctl -eu $1 | tail -n 40
 }
 
 # ----------------------- alias ----------------------
@@ -62,6 +62,7 @@ alias gts="git status -s"
 alias gtun="git status uno"
 
 alias gcm="git commit"
+alias gcmm="git commit -m"
 alias gcma="git commit -a"
 alias gcmn="git commit --amend"
 alias gcman="git commit -a --amend"
@@ -135,6 +136,7 @@ fi
 alias pingk="ping -c 4 -s 1024"
 alias gdb="gdb -q"
 alias cp="cp -f"
+alias less="less -R"
 
 [ -z "$LS_OPTIONS" ] && export LS_OPTIONS="--color=auto"
 alias ls="ls $LS_OPTIONS"
@@ -160,6 +162,8 @@ fi
 export HISTTIMEFORMAT='%F %T '
 export HISTSIZE=3000
 export SAVEHIST=3000
+export VISUAL=vim
+export EDITOR=vim
 
 local_inc=$HOME/.local/include
 if [ -d $local_inc ]; then
