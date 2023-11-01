@@ -124,12 +124,12 @@ fi
 # pacman (archlinux/manjaro)
 if type pacman >/dev/null 2>&1; then
     alias pkgins="sudo pacman -S"
-    alias pkginsy="sudo pacman -Sy"
-    alias pkguni="sudo pacman -Rs"
+    alias pkguni="sudo pacman -R"
     alias pkgss="pacman -Ss"
-    alias pkgsq="pacman -Ssq"
-    alias pkgqinf="pacman -Qi"
-    alias pkgqls="pacman -Ql"
+    alias pkgssq="pacman -Ssq"
+    alias pkgqs="pacman -Qs"
+    alias pkgqi="pacman -Qi"
+    alias pkgql="pacman -Ql"
 fi
 
 # other shell

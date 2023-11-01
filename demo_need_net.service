@@ -6,7 +6,6 @@ Wants=network.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/hpc -deviceId=0efdcba
-KillSignal=SIGINT
 TimeoutStopSec=15
 Restart=always
 RestartSec=30
