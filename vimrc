@@ -50,7 +50,7 @@ set shiftwidth=4
 " tab
 set tabstop=4                   " tab width
 set softtabstop=4                " insert mode tab and backspace use 4 spaces
-"set noexpandtab                 " donnot use space relace tab"
+"set noexpandtab                 " donnot use space relace tab
 "set smarttab                    " at the beginning of line and section?
 "set expandtab                   " expand tabs to spaces
 
@@ -66,7 +66,7 @@ set fileencoding=utf-8
 set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,latin1 "?fencs"
 set termencoding=utf-8
 " ???"
-set ffs=unix,dos,mac
+set fileformats=unix,dos,mac
 set formatoptions+=m
 set formatoptions+=B
 
@@ -122,9 +122,13 @@ set helplang=cn
 " disable auto wrap and auto comments
 set formatoptions-=cro
 
+if !has('nvim')
+    set ttymouse=xterm2
+endif
+
 " CTags
 let Tlist_Auto_Open=1               " open taglist as default"
-let Tlist_Sort_Type = "name"        " sort by name
+let Tlist_Sort_Type = 'name'        " sort by name
 let Tlist_Use_Right_Window = 1      " show taglist window at right
 let Tlist_Compart_Format = 1        " compress way
 let Tlist_File_Fold_Auto_Close = 0  " donnot close other files tags  
@@ -142,7 +146,7 @@ inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
 function! XTermPasteBegin()
     set pastetoggle=<Esc>[201~
     set paste
-    return ""
+    return ''
 endfunction
 
 " minibufexpl plugin
