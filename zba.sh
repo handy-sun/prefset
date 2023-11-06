@@ -48,7 +48,6 @@ gitur(){
     git add `git status -s | grep -vE '^\?\?|  ' | awk '{print$2;}'`
     [ $? -eq 0 ] || return 1
 
-    git add $track_modify
     git commit
     git pull --rebase && git push || echo 'handle conflicts first!'
 }
