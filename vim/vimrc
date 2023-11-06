@@ -29,6 +29,7 @@ set visualbell t_vb=            " turn off error beep/flash
 "set tm=500
 
 " show
+""==set nu
 set number                      " show line numbers
 set ruler                       " show the current row and column
 set showcmd                     " display incomplete commands
@@ -52,7 +53,7 @@ set tabstop=4                   " tab width
 set softtabstop=4                " insert mode tab and backspace use 4 spaces
 "set noexpandtab                 " donnot use space relace tab
 "set smarttab                    " at the beginning of line and section?
-"set expandtab                   " expand tabs to spaces
+set expandtab                   " expand tabs to spaces
 
 " search
 set hlsearch                    " highlight searches
@@ -82,11 +83,18 @@ set wildmode=longest,list,full
 set wildignore=*.o,*~,*.pyc,*.class
 set linespace=0       " the line count to insert between words"
 
+set list
+set listchars=tab:»·,trail:·,nbsp:+
+
+hi MyTabSpace guifg=darkgrey ctermfg=darkgrey
+match MyTabSpace /\t\| /
+
 " set mark column color
 hi! link SignColumn   LineNr
 hi! link ShowMarksHLl DiffAdd
 hi! link ShowMarksHLu DiffChange
-hi  LineNr ctermfg=gray
+hi LineNr ctermfg=grey
+hi CursorLineNr cterm=bold ctermfg=lightgreen
 
 " status line
 set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [CHARSET=%{(&fenc==\"\")?&enc:&fenc}%{(&bomb?\",BOM\":\"\")}]\ [TYPE=%Y]\ [POS=%l,%v]\ [%p%%]\ %{strftime(\"%H:%M\")}
@@ -95,11 +103,21 @@ set cmdheight=1    " cmdline which under status line height, default = 1"
 
 " au=autocmd
 "autocmd FileType python set tabstop=4 shiftwidth=4 expandtab
-" highlight show (need *.vim script)"
-autocmd BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
-autocmd BufRead,BufNewFile *  setfiletype txt
-autocmd InsertLeave * se nocul  " highlight line use light color
-autocmd InsertEnter * se cul    " highlight line use light color too?
+"augroup what
+     "highlight show (need *.vim script)"
+"    autocmd BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
+"    autocmd BufRead,BufNewFile *  setfiletype txt
+"    autocmd InsertLeave * se nocul  " highlight line use light color
+"    autocmd InsertEnter * se cul    " highlight line use light color too?
+"augroup END
+"
+"augroup relative_numbser
+"    autocmd!
+"    autocmd InsertEnter * :set norelativenumber
+"    autocmd InsertLeave * :set relativenumber
+"augroup END
+
+"set relativenumber
 
 " others
 set backspace=indent,eol,start  " make that backspace key work the way it should

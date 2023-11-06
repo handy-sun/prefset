@@ -45,14 +45,15 @@ rlip4(){
 # quickly update git repo between remote and local
 gitur(){
     set -x
-    local top_level=`git rev-parse --show-toplevel`
+    git add `git status -s | grep -vE '^\?\?|  ' | awk '{print$2;}'`
     [ $? -eq 0 ] || return 1
-    git add $top_level
+
+    git add $track_modify
     git commit
-    git pull --rebase && git push || echo handle conflicts first!
+    git pull --rebase && git push || echo 'handle conflicts first!'
 }
 jnl(){
-    journalctl -eu $1 | tail -n 40
+    journalctl -eu $1 | less +G
 }
 
 # ----------------------- alias ----------------------
@@ -84,11 +85,10 @@ alias glp="git log --pretty=format:'%Cred%h%Creset -%Creset %s %Cgreen(%cr) %C(b
 alias gdf="git diff"
 alias gdfh="git diff HEAD"
 alias gdfc="git diff --cached"
-alias gbr="git branch"
-alias gbra="git branch -a"
+alias gbr="git branch -a"
 alias gtl="git tag --list"
 alias gck="git checkout"
-alias grtv="git remote -v"
+alias grt="git remote -v"
 alias gblm="git blame -L"
 alias gaprj="git apply --reject"
 # tar
@@ -126,6 +126,7 @@ if type pacman >/dev/null 2>&1; then
     alias pkgins="sudo pacman -S"
     alias pkguni="sudo pacman -R"
     alias pkgss="pacman -Ss"
+    alias pkgsi="pacman -Si"
     alias pkgssq="pacman -Ssq"
     alias pkgqs="pacman -Qs"
     alias pkgqi="pacman -Qi"
