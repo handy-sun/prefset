@@ -54,7 +54,13 @@ gitur(){
 jnl(){
     journalctl -eu $1 | less +G
 }
-
+dkcid(){
+    docker ps | grep " $1" | awk '{print$1}'
+}
+dktty(){
+    local container_id=`dkcid $1`
+    docker exec -ti $container_id /bin/bash
+}
 # ----------------------- alias ----------------------
 # git
 alias gta="git status"
