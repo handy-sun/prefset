@@ -1,4 +1,3 @@
-"" syntax
 syntax on
 "colorscheme murphy 
 
@@ -97,9 +96,26 @@ hi LineNr ctermfg=grey
 hi CursorLineNr cterm=bold ctermfg=lightgreen
 
 " status line
-set statusline=%F%m%r%h%w\ [FORMAT=%{&ff}]\ [CHARSET=%{(&fenc==\"\")?&enc:&fenc}%{(&bomb?\",BOM\":\"\")}]\ [TYPE=%Y]\ [POS=%l,%v]\ [%p%%]\ %{strftime(\"%H:%M\")}
 set laststatus=2   " Always show the status line - use 2 lines for the status bar
 set cmdheight=1    " cmdline which under status line height, default = 1"
+
+set statusline=
+set statusline+=\%1*[%n] " buffer number
+set statusline+=\ %<%.50F " file path maxlength=50
+set statusline+=%=%2*\%y%m%r%h%w\ %* " [filetype] [show'+'ifmodified]
+set statusline+=%3*\%{&ff}\[%{(&fenc==\"\")?&enc:&fenc}%* " encoding
+set statusline+=%3*\%{(&bomb?\",BOM\":\"\")}]\ %* " encoding has BOM
+set statusline+=%4*row:%l/%L\ col:%c\ %*
+set statusline+=%5*\%3p%%\ %* " current line percent
+set statusline+=%6*%{strftime(\"%H:%M\")}\ %*
+
+"hi statusline ctermbg=darkgrey
+hi User1 ctermfg=white ctermbg=darkgrey
+hi User2 ctermfg=red ctermbg=darkgrey
+hi User3 ctermfg=cyan ctermbg=darkgrey
+hi User4 ctermfg=yellow ctermbg=darkgrey
+hi User5 ctermfg=green ctermbg=darkgrey
+hi User6 ctermfg=lightgrey ctermbg=darkgrey
 
 " au=autocmd
 "autocmd FileType python set tabstop=4 shiftwidth=4 expandtab
@@ -145,7 +161,7 @@ if !has('nvim')
 endif
 
 " CTags
-let Tlist_Auto_Open=1               " open taglist as default"
+let Tlist_Auto_Open = 1             " open taglist as default"
 let Tlist_Sort_Type = 'name'        " sort by name
 let Tlist_Use_Right_Window = 1      " show taglist window at right
 let Tlist_Compart_Format = 1        " compress way
@@ -159,7 +175,13 @@ let Tlist_Exit_OnlyWindow = 1       " exit vim if taglist window is the last win
 let &t_SI .= "\<Esc>[?2004h"
 let &t_EI .= "\<Esc>[?2004l"
 
-inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
+imap <special> <expr> <Esc>[200~ XTermPasteBegin()
+" Esc cancel highlight
+nmap <Esc> :noh<CR>
+nmap - ddkP
+nmap + ddp
+imap <C-d> <Esc>ddi
+imap <C-z> <Esc>ui
 
 function! XTermPasteBegin()
     set pastetoggle=<Esc>[201~
@@ -171,5 +193,5 @@ endfunction
 let g:miniBufExplMapWindowNavVim = 1
 let g:miniBufExplMapWindowNavArrows = 1
 let g:miniBufExplMapCTabSwitchBufs = 1
-let g:miniBufExplModSelTarget = 1   
+let g:miniBufExplModSelTarget = 1
 
