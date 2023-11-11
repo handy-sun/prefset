@@ -139,7 +139,7 @@ if type pacman >/dev/null 2>&1; then
 fi
 
 # other shell
-alias pingk="ping -c 4 -s 1024"
+alias pingk="ping -c 4"
 alias gdb="gdb -q"
 alias cp="cp -f"
 alias less="less -R"
@@ -155,12 +155,28 @@ type xclip >/dev/null 2>&1 && alias pbcopy="xclip -selection clipboard" && alias
 
 alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 
-# only bash use this PS1.
-echo $SHELL | grep -E '/bash$' >/dev/null 2>&1
-if [ $? -eq 0 ]; then
-    last_exit_code="\$(LEC=\$? ; [[ \$LEC -ne 0 ]] && printf \"\033[91m%d \033[0m\" \$LEC)"
-    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\033[00;36m\]\w\[\e[0m\] ${last_exit_code}\\$ "
-    unset last_exit_code
+_get_short_pwd(){
+    echo -n `pwd | sed -e "s!$HOME!~!" | sed "s:\([^/]\)[^/]*/:\1/:g"`
+}
+
+_ssh_addr(){
+    echo $SSH_CLIENT | awk '{print$1}'
+}
+
+_prompt_cmd(){
+    [[ $? == 0 ]] && local ps1ArrowFgColor="92" || local ps1ArrowFgColor="91"
+    local shortPwd=`_get_short_pwd`
+    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\e[0;94m\]${shortPwd} \[\e[0;${ps1ArrowFgColor}m\]\\$\[\e[0m\] "
+}
+
+if [[ -n "$BASH_VERSION" ]]; then
+    PROMPT_COMMAND=_prompt_cmd
+    export HISTCONTROL=ignoredups:erasedups # no duplicate entries
+    shopt -s histappend
+else
+    setopt promptsubst
+    PROMPT='%f%F{6}$(_get_short_pwd)%f %F{green}%B>%f%b '
+    RPROMPT='%F{red}%(?..%?)%f %F{yellow}%n@$(_ssh_addr)%f %F{15}%*%f'
 fi
 
 # ----------------------- export some env var -------------------------
