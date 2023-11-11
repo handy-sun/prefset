@@ -1,4 +1,5 @@
-syntax on
+syntax enable
+colorscheme habamax
 
 " filetype
 filetype on
@@ -17,11 +18,11 @@ set title                       " change the terminal's title
 set history=1000                " history : how many lines of history VIM has to remember
 set nobackup                    " do not keep a backup file
 set noswapfile
-set novisualbell                " turn off visual bell
+" set novisualbell                " turn off visual bell
 set errorbells
 
 set scrolloff=2                 " movement keep 3 lines when scrolling
-set visualbell t_vb=            " turn off error beep/flash
+set visualbell t_vb=
 
 " show
 ""==set nu
@@ -67,8 +68,6 @@ set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,latin1
 set termencoding=utf-8
 
 set fileformats=unix,dos,mac
-set formatoptions+=m
-set formatoptions+=B
 
 " select & complete
 set mouse=a                      " use mouse anywher in buffer"
@@ -133,6 +132,10 @@ hi User9 ctermfg=lightgrey ctermbg=darkgrey
 "    autocmd InsertEnter * se cul    " highlight line use light color too?
 "augroup END
 
+if has("autocmd")
+  au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
+
 " others
 set backspace=indent,eol,start  " make that backspace key work the way it should
 set whichwrap+=<,>,h,l          " allow backspace and cursor crossline border
@@ -150,14 +153,15 @@ set langmenu=zh_CN.UTF-8
 set helplang=en
 
 " disable auto wrap and auto comments
-set formatoptions-=cro
+set formatoptions-=co
+set formatoptions+=mM
 
 " CTags
 let Tlist_Auto_Open = 1             " open taglist as default"
 let Tlist_Sort_Type = 'name'        " sort by name
 let Tlist_Use_Right_Window = 1      " show taglist window at right
 let Tlist_Compart_Format = 1        " compress way
-let Tlist_File_Fold_Auto_Close = 0  " donnot close other files tags  
+let Tlist_File_Fold_Auto_Close = 0  " donnot close other files tags
 let Tlist_Enable_Fold_Column = 0    " donnot show folded tree
 let Tlist_Ctags_Cmd = '/usr/bin/ctags'
 let Tlist_Show_One_File = 1         " show current file only
@@ -170,6 +174,7 @@ let &t_SI = "\<Esc>]50;CursorShape=1\x7"
 let &t_SR = "\<Esc>]50;CursorShape=2\x7"
 let &t_EI = "\<Esc>]50;CursorShape=0\x7"
 
+let mapleader = "\<space>"
 "" keyborad bind
 map <C-s> <Cmd>:w<CR>
 map <C-q> <Cmd>:wq<CR>
@@ -179,11 +184,16 @@ map <C-a> ggVG
 " Esc cancel highlight
 nmap <Esc> <Cmd>nohlsearch<CR>
 nmap Q <Cmd>wqa<CR>
-nmap rc <Cmd>source /etc/vimrc<CR>
 "move this line down
 nmap = ddp
 "move this line up
 nmap - ddkP
+
+nmap tn <Cmd>tabnew<CR>
+nmap tk <Cmd>tabnext<CR>
+nmap tj <Cmd>tabprevious<CR>
+nmap to <Cmd>tabonly<CR>
+nmap tc <Cmd>tabclose<CR>
 
 nmap sh <Cmd>setlocal nosplitright<CR>:vsplit<CR>
 nmap sl <Cmd>setlocal splitright<CR>:vsplit<CR>
@@ -195,10 +205,19 @@ nmap <C-l> <Cmd>wincmd l<CR>
 nmap <C-j> <Cmd>wincmd j<CR>
 nmap <C-k> <Cmd>wincmd k<CR>
 
-nmap <A-[> <Cmd>vertical resize -5<CR>
-nmap <A-]> <Cmd>vertical resize +5<CR>
-nmap <A-;> <Cmd>resize -2<CR>
-nmap <A-'> <Cmd>resize +2<CR>
+nmap <leader>[  <Cmd>vertical resize -5<CR>
+nmap <leader>]  <Cmd>vertical resize +5<CR>
+nmap <leader>;  <Cmd>resize -2<CR>
+nmap <leader>'  <Cmd>resize +2<CR>
+
+nmap <leader>fe <Cmd>vsp /etc/vimrc<CR>
+nmap <leader>fr <Cmd>source /etc/vimrc<CR>
+" search for word equal to each
+nmap <leader>fd /\(\<\w\+\>\)\_s*\1
+" trim EOL trailing space
+nmap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
+" Enter break line
+nmap <leader><CR> a<CR><Esc>k$
 
 ""INSERT mode
 "imap <C-s> <Esc>:w<CR>
@@ -211,7 +230,7 @@ imap <C-z> <Esc>ui
 
 imap <C-u> <C-G>u<C-U>
 imap <C-b> <C-Left>
-"imap <special> <expr> <Esc>[200~ XTermPasteBegin()
+imap <special> <expr> <Esc>[200~ XTermPasteBegin()
 
 ""VISUAL mode
 vmap J :m '>+1<CR>gv=gv
