@@ -1,5 +1,16 @@
-syntax enable
-colorscheme habamax
+set encoding=utf-8
+scriptencoding utf-8
+set fileencoding=utf-8
+set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,latin1
+set termencoding=utf-8
+
+if has('syntax')
+    syntax on
+endif
+
+if version >= 900
+    colorscheme habamax
+endif
 
 " filetype
 filetype on
@@ -39,7 +50,7 @@ set cursorline
 set splitright
 set splitbelow
 set relativenumber
-"set background=dark
+set background=dark
 
 " indent
 set autoindent
@@ -60,12 +71,6 @@ set incsearch                   " do incremental searching, search as you type
 set ignorecase                  " !!! ignore case when searching
 set smartcase                   " no ignorecase if Uppercase char present
 set infercase
-
-" encoding
-set encoding=utf-8
-set fileencoding=utf-8
-set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,latin1
-set termencoding=utf-8
 
 set fileformats=unix,dos,mac
 
@@ -122,19 +127,14 @@ hi User7 ctermfg=magenta ctermbg=darkgrey
 hi User8 ctermfg=white ctermbg=darkgrey
 hi User9 ctermfg=lightgrey ctermbg=darkgrey
 
-" au=autocmd
-"autocmd FileType python set tabstop=4 shiftwidth=4 expandtab
-"augroup what
-     "highlight show (need *.vim script)"
-"    autocmd BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
-"    autocmd BufRead,BufNewFile *  setfiletype txt
-"    autocmd InsertLeave * se nocul  " highlight line use light color
-"    autocmd InsertEnter * se cul    " highlight line use light color too?
-"augroup END
-
-if has("autocmd")
-  au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+augroup vimrcEx
+if has('autocmd')
+    au FileType python set tabstop=4 shiftwidth=4 expandtab
+    au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
+    au BufRead,BufNewFile *  setfiletype txt
+    au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif  " open file at the last edit line
 endif
+augroup END
 
 " others
 set backspace=indent,eol,start  " make that backspace key work the way it should
@@ -181,7 +181,7 @@ map <C-q> <Cmd>:wq<CR>
 map <C-a> ggVG
 
 ""NORMAL mode
-" Esc cancel highlight
+" Esc cancel highlight search word
 nmap <Esc> <Cmd>nohlsearch<CR>
 nmap Q <Cmd>wqa<CR>
 "move this line down
@@ -211,7 +211,7 @@ nmap <leader>;  <Cmd>resize -2<CR>
 nmap <leader>'  <Cmd>resize +2<CR>
 
 nmap <leader>fe <Cmd>vsp /etc/vimrc<CR>
-nmap <leader>fr <Cmd>source /etc/vimrc<CR>
+nmap <leader>fr <Cmd>source /etc/vimrc<CR><Cmd>source $MYVIMRC<CR>
 " search for word equal to each
 nmap <leader>fd /\(\<\w\+\>\)\_s*\1
 " trim EOL trailing space

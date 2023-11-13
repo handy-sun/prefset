@@ -144,7 +144,7 @@ alias gdb="gdb -q"
 alias cp="cp -f"
 alias less="less -R"
 
-[ -z "$LS_OPTIONS" ] && export LS_OPTIONS="--color=auto"
+[[ -z "$LS_OPTIONS" ]] && export LS_OPTIONS="--color=auto"
 alias ls="ls $LS_OPTIONS"
 alias ll="ls -AlF"
 alias lh="ls -AlFh"
@@ -156,7 +156,17 @@ type xclip >/dev/null 2>&1 && alias pbcopy="xclip -selection clipboard" && alias
 alias grep >/dev/null 2>&1 || alias grep="grep --color=auto"
 
 _get_short_pwd(){
-    echo -n `pwd | sed -e "s!$HOME!~!" | sed "s:\([^/]\)[^/]*/:\1/:g"`
+    # echo -n `pwd | sed -e "s!$HOME!~!" | sed "s:\([^/]\)[^/]*/:\1/:g"`
+    split=4
+    W=$(pwd | sed -e "s!$HOME!~!")
+    # W=${PWD/#"$HOME"/~}
+    total_cnt=$(echo $W | grep -o '/' | wc -l)
+    last_cnt=$(($total_cnt-1))
+    if [ $total_cnt -gt $split ]; then
+        echo $W | cut -d/ -f1-2 | xargs -I{} echo {}"/…/$(echo $W | cut -d/ -f${last_cnt}-)"
+    else
+        echo $W
+    fi
 }
 
 _ssh_addr(){
@@ -164,19 +174,25 @@ _ssh_addr(){
 }
 
 _prompt_cmd(){
-    [[ $? == 0 ]] && local ps1ArrowFgColor="92" || local ps1ArrowFgColor="91"
+    [[ $? -eq 0 ]] && local ps1ArrowFgColor="92" || local ps1ArrowFgColor="91"
     local shortPwd=`_get_short_pwd`
-    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\e[0;94m\]${shortPwd} \[\e[0;${ps1ArrowFgColor}m\]\\$\[\e[0m\] "
+    # local shortPwd=`p=${PWD/#\"$HOME\"/~};((${#p}>30)) && echo \"${p::10}…${p:(-19)}\" || echo \"\w\"`
+    PS1="\[\e[0m\]\[\033[0;32m\]\A \[\e[0;36m\]${shortPwd} \[\e[0;${ps1ArrowFgColor}m\]\\$\[\e[0m\] "
+    # PS1='\[\e[0m\]\[\033[0;32m\]\A \[\e[0;36m\]w \[\e[0;${ps1ArrowFgColor}m\]\$\[\e[0m\] '
 }
 
 if [[ -n "$BASH_VERSION" ]]; then
+    # PROMPT_DIRTRIM=2
     PROMPT_COMMAND=_prompt_cmd
-    export HISTCONTROL=ignoredups:erasedups # no duplicate entries
+    HISTCONTROL=ignoredups:erasedups # no duplicate entries
     shopt -s histappend
-else
-    setopt promptsubst
-    PROMPT='%f%F{6}$(_get_short_pwd)%f %F{green}%B>%f%b '
-    RPROMPT='%F{red}%(?..%?)%f %F{yellow}%n@$(_ssh_addr)%f %F{15}%*%f'
+elif [[ -n "$ZSH_VERSION" ]]; then
+    setopt | grep promptsubst >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        setopt promptsubst
+        PROMPT='%f%F{6}%(5~|%-1~/…/%3~|%4~)%f %F{green}>%f '
+        RPROMPT='%F{red}%(?..%?)%f %F{yellow}%n@%l %F{15}%*%f'
+    fi
 fi
 
 # ----------------------- export some env var -------------------------
