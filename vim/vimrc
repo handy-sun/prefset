@@ -130,8 +130,8 @@ hi User9 ctermfg=lightgrey ctermbg=darkgrey
 augroup vimrcEx
 if has('autocmd')
     au FileType python set tabstop=4 shiftwidth=4 expandtab
-    au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
-    au BufRead,BufNewFile *  setfiletype txt
+    "au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
+    "au BufRead,BufNewFile *  setfiletype txt
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif  " open file at the last edit line
 endif
 augroup END
@@ -218,6 +218,8 @@ nmap <leader>fd /\(\<\w\+\>\)\_s*\1
 nmap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
 nmap <leader><CR> a<CR><Esc>k$
+
+"nmap <C-CR> i<CR><Esc>k$
 
 ""INSERT mode
 "imap <C-s> <Esc>:w<CR>

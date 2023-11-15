@@ -54,6 +54,9 @@ gitur(){
 jnl(){
     journalctl -eu $1 | less +G
 }
+jfxe(){
+    journalctl -fxeu $1
+}
 dkcid(){
     docker ps | grep " $1" | awk '{print$1}'
 }
