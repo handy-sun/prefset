@@ -23,7 +23,7 @@ set autoread                    " reload files when changed on disk
 set autowrite
 set gdefault
 set confirm                     " processing ont save or read-only file, pop confirm
-set shortmess=aoOTIcF           " control detail of shown messages
+set shortmess=aTI
 set magic                       " For regular expressions turn magic on
 set title                       " change the terminal's title
 set history=1000                " history : how many lines of history VIM has to remember
@@ -127,14 +127,14 @@ hi User7 ctermfg=magenta ctermbg=darkgrey
 hi User8 ctermfg=white ctermbg=darkgrey
 hi User9 ctermfg=lightgrey ctermbg=darkgrey
 
-augroup vimrcEx
 if has('autocmd')
+augroup vimrcEx
     au FileType python set tabstop=4 shiftwidth=4 expandtab
     "au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
     "au BufRead,BufNewFile *  setfiletype txt
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif  " open file at the last edit line
-endif
 augroup END
+endif
 
 " others
 set backspace=indent,eol,start  " make that backspace key work the way it should
@@ -168,11 +168,11 @@ let Tlist_Show_One_File = 1         " show current file only
 let Tlist_Exit_OnlyWindow = 1       " exit vim if taglist window is the last window
 
 " https://github.com/ryanpcmcquen/fix-vim-pasting
-"let &t_SI .= "\<Esc>[?2004h"
-"let &t_EI .= "\<Esc>[?2004l"
-let &t_SI = "\<Esc>]50;CursorShape=1\x7"
-let &t_SR = "\<Esc>]50;CursorShape=2\x7"
-let &t_EI = "\<Esc>]50;CursorShape=0\x7"
+" let &t_SI .= "\<Esc>[?2004h"
+" let &t_EI .= "\<Esc>[?2004l"
+" let &t_SI = "\<Esc>]50;CursorShape=1\x7"
+" let &t_SR = "\<Esc>]50;CursorShape=2\x7"
+" let &t_EI = "\<Esc>]50;CursorShape=0\x7"
 
 let mapleader = "\<space>"
 "" keyborad bind
