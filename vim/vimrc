@@ -174,20 +174,20 @@ let Tlist_Exit_OnlyWindow = 1       " exit vim if taglist window is the last win
 " let &t_SR = "\<Esc>]50;CursorShape=2\x7"
 " let &t_EI = "\<Esc>]50;CursorShape=0\x7"
 
+" keyborad bind
 let mapleader = "\<space>"
-"" keyborad bind
+
 map <C-s> <Cmd>:w<CR>
 map <C-q> <Cmd>:wq<CR>
 map <C-a> ggVG
 
-""NORMAL mode
 " Esc cancel highlight search word
 nmap <Esc> <Cmd>nohlsearch<CR>
 nmap Q <Cmd>wqa<CR>
 "move this line down
-nmap = ddp
+nmap = <Cmd>move +1<CR>
 "move this line up
-nmap - ddkP
+nmap - <Cmd>move -1<CR>
 
 nmap tn <Cmd>tabnew<CR>
 nmap tk <Cmd>tabnext<CR>
@@ -217,9 +217,8 @@ nmap <leader>fd /\(\<\w\+\>\)\_s*\1
 " trim EOL trailing space
 nmap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
-nmap <leader><CR> a<CR><Esc>k$
+nmap <leader><CR> i<CR><Esc>k$
 
-"nmap <C-CR> i<CR><Esc>k$
 
 ""INSERT mode
 "imap <C-s> <Esc>:w<CR>
