@@ -90,6 +90,8 @@ set wildignorecase
 set list
 set listchars=tab:»·,trail:·,nbsp:+
 
+set t_Co=256
+
 hi MyTabSpace ctermfg=darkgrey
 match MyTabSpace /\t\| /
 
@@ -156,82 +158,64 @@ set helplang=en
 set formatoptions-=co
 set formatoptions+=mM
 
-
-" https://github.com/ryanpcmcquen/fix-vim-pasting
-" let &t_SI .= "\<Esc>[?2004h"
-" let &t_EI .= "\<Esc>[?2004l"
-" let &t_SI = "\<Esc>]50;CursorShape=1\x7"
-" let &t_SR = "\<Esc>]50;CursorShape=2\x7"
-" let &t_EI = "\<Esc>]50;CursorShape=0\x7"
+let &t_SI .= "\<Esc>[?2004h"
+let &t_EI .= "\<Esc>[?2004l"
 
 " keyborad bind
 let mapleader = "\<space>"
 
-map <C-s> <Cmd>:w<CR>
-map <C-q> <Cmd>:wq<CR>
-map <C-a> ggVG
+nnoremap S :w<CR>
+nnoremap Q :wqa<CR>
+nnoremap <C-a> ggVG
 
-" Esc cancel highlight search word
-nmap <Esc> <Cmd>nohlsearch<CR>
-nmap Q <Cmd>wqa<CR>
-"move this line down
-nmap = <Cmd>move +1<CR>
-"move this line up
-nmap - <Cmd>move -1<CR>
+" cancel highlight search word
+nnoremap <silent> <F12> :noh<CR>
 
-nmap tn <Cmd>tabnew<CR>
-nmap tk <Cmd>tabnext<CR>
-nmap tj <Cmd>tabprevious<CR>
-nmap to <Cmd>tabonly<CR>
-nmap tc <Cmd>tabclose<CR>
+" move this line down
+nnoremap = :m +1<CR>
+" move this line up
+nnoremap - :m -2<CR>
 
-nmap sh <Cmd>setlocal nosplitright<CR>:vsplit<CR>
-nmap sl <Cmd>setlocal splitright<CR>:vsplit<CR>
-nmap sk <Cmd>setlocal nosplitbelow<CR>:split<CR>
-nmap sj <Cmd>setlocal splitbelow<CR>:split<CR>
+nnoremap tn :tabnew<CR>
+nnoremap tk :tabnext<CR>
+nnoremap tj :tabprevious<CR>
+nnoremap to :tabonly<CR>
+nnoremap tc :tabclose<CR>
 
-nmap <C-h> <Cmd>wincmd h<CR>
-nmap <C-l> <Cmd>wincmd l<CR>
-nmap <C-j> <Cmd>wincmd j<CR>
-nmap <C-k> <Cmd>wincmd k<CR>
+nnoremap sh :setlocal nosplitright<CR>:vsplit<CR>
+nnoremap sl :setlocal splitright<CR>:vsplit<CR>
+nnoremap sk :setlocal nosplitbelow<CR>:split<CR>
+nnoremap sj :setlocal splitbelow<CR>:split<CR>
 
-nmap <leader>[  <Cmd>vertical resize -5<CR>
-nmap <leader>]  <Cmd>vertical resize +5<CR>
-nmap <leader>;  <Cmd>resize -2<CR>
-nmap <leader>'  <Cmd>resize +2<CR>
+nnoremap <C-h> :wincmd h<CR>
+nnoremap <C-l> :wincmd l<CR>
+nnoremap <C-j> :wincmd j<CR>
+nnoremap <C-k> :wincmd k<CR>
 
-nmap <leader>fe <Cmd>vsp /etc/vimrc<CR>
-nmap <leader>fr <Cmd>source /etc/vimrc<CR><Cmd>source $MYVIMRC<CR>
+nnoremap <leader>[ :vertical resize -5<CR>
+nnoremap <leader>] :vertical resize +5<CR>
+nnoremap <leader>; :resize -2<CR>
+nnoremap <leader>' :resize +2<CR>
+
+nnoremap <leader>fe :vsp /etc/vimrc<CR>
+nnoremap <leader>fr :source /etc/vimrc<CR>:source $MYVIMRC<CR>
 " search for word equal to each
-nmap <leader>fd /\(\<\w\+\>\)\_s*\1
+nnoremap <leader>fd /\(\<\w\+\>\)\_s*\1
 " trim EOL trailing space
-nmap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
+nnoremap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
-nmap <leader><CR> i<CR><Esc>k$
-
-
-""INSERT mode
-"imap <C-s> <Esc>:w<CR>
-"imap <C-q> <Esc>:wq<CR>
+nnoremap <leader><CR> i<CR><Esc>k$
 
 " delete one line
-imap <C-d> <Esc>ddi
+inoremap <C-d> <Esc>ddi
 " undo
-imap <C-z> <Esc>ui
-
-imap <C-u> <C-G>u<C-U>
-imap <C-b> <C-Left>
-imap <special> <expr> <Esc>[200~ XTermPasteBegin()
-
-""VISUAL mode
-vmap J :m '>+1<CR>gv=gv
-vmap K :m '<-2<CR>gv=gv
-vmap < <gv
-vmap > >gv
+inoremap <C-z> <Esc>ui
+inoremap <C-u> <C-G>u<C-U>
+inoremap <C-b> <C-Left>
+inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
 
 function! XTermPasteBegin()
     set pastetoggle=<Esc>[201~
     set paste
     return ''
 endfunction
-
