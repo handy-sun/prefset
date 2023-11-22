@@ -156,16 +156,6 @@ set helplang=en
 set formatoptions-=co
 set formatoptions+=mM
 
-" CTags
-let Tlist_Auto_Open = 1             " open taglist as default"
-let Tlist_Sort_Type = 'name'        " sort by name
-let Tlist_Use_Right_Window = 1      " show taglist window at right
-let Tlist_Compart_Format = 1        " compress way
-let Tlist_File_Fold_Auto_Close = 0  " donnot close other files tags
-let Tlist_Enable_Fold_Column = 0    " donnot show folded tree
-let Tlist_Ctags_Cmd = '/usr/bin/ctags'
-let Tlist_Show_One_File = 1         " show current file only
-let Tlist_Exit_OnlyWindow = 1       " exit vim if taglist window is the last window
 
 " https://github.com/ryanpcmcquen/fix-vim-pasting
 " let &t_SI .= "\<Esc>[?2004h"
@@ -244,10 +234,4 @@ function! XTermPasteBegin()
     set paste
     return ''
 endfunction
-
-" minibufexpl plugin
-let g:miniBufExplMapWindowNavVim = 1
-let g:miniBufExplMapWindowNavArrows = 1
-let g:miniBufExplMapCTabSwitchBufs = 1
-let g:miniBufExplModSelTarget = 1
 
