@@ -164,12 +164,14 @@ let &t_EI .= "\<Esc>[?2004l"
 " keyborad bind
 let mapleader = "\<space>"
 
-nnoremap S :w<CR>
-nnoremap Q :wqa<CR>
+nnoremap <space>s :w<CR>
+nnoremap <space>q :wqa<CR>
+nnoremap <space>e :q!<CR>
 nnoremap <C-a> ggVG
+" nnoremap <space>2 @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 
 " cancel highlight search word
-nnoremap <silent> <F12> :noh<CR>
+nnoremap <silent> <space><bs> :noh<CR>
 
 " move this line down
 nnoremap = :m +1<CR>
