@@ -1,0 +1,10 @@
+set autoread
+set autowrite
+set nobackup
+set noswapfile
+set number
+set showmode
+set autoindent
+set shiftround
+set shiftwidth=4
+set smartcase
