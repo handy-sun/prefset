@@ -19,7 +19,7 @@
     "C_Cpp.clang_format_fallbackStyle": "LLVM",
     "python.showStartPage": false,
     "python.pythonPath": "C:\\Python38\\python.exe",
-    "workbench.editor.untitled.hint": "hidden",
+    "workbench.editor.empty.hint": "hidden",
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook"
     },
@@ -56,20 +56,17 @@
         "strings": "off"
     },
     "editor.minimap.enabled": false,
-    "C_Cpp.autocomplete": "Default",
-    "[cpp]": {
-        "editor.quickSuggestions": true
-    },
+    "C_Cpp.autocomplete": "default",
     "[c]": {
         "editor.quickSuggestions": {
             "comments": "on",
             "strings": "on",
             "other": "on"
         },
-        // "editor.defaultFormatter": "chiehyu.vscode-astyle"
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
     },
     "editor.suggest.snippetsPreventQuickSuggestions": false,
-    "files.autoSave": "afterDelay",
+
     "hexeditor.columnWidth": 16,
     "hexeditor.showDecodedText": true,
     "hexeditor.defaultEndianness": "little",
@@ -233,5 +230,7 @@
                 }
             }
         ]
-    }
+    },
+
+    "editor.inlayHints.enabled": "offUnlessPressed"
 }

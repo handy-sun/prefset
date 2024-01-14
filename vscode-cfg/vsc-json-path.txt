@@ -5,7 +5,3 @@ C:\Users\SunQi\AppData\Roaming\Code\User
 
 Ubuntu
 ~/.config/Code/User
-
-vsc keyboard shotcuts:
-
-Alt+↑/↓ 上下移动这一行
