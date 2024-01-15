@@ -9,7 +9,7 @@
     "cmake.configureOnOpen": true,
     "editor.columnSelection": false,
     "[cpp]": {
-        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
         "editor.quickSuggestions": {
             "comments": "on",
             "strings": "on",
@@ -56,7 +56,7 @@
         "strings": "off"
     },
     "editor.minimap.enabled": false,
-    "C_Cpp.autocomplete": "default",
+    "C_Cpp.autocomplete": "disabled",
     "[c]": {
         "editor.quickSuggestions": {
             "comments": "on",
@@ -76,9 +76,13 @@
     "diffEditor.ignoreTrimWhitespace": false,
     "clangd.detectExtensionConflicts": false,
     "git.openRepositoryInParentFolders": "never",
-    // "C_Cpp.intelliSenseEngine": "disabled"
+    "gitlens.advanced.messages": {
+        "suppressLineUncommittedWarning": true
+    },
+        // "C_Cpp.intelliSenseEngine": "disabled"
     "C_Cpp.default.cppStandard": "c++20",
     "C_Cpp.default.cStandard": "c99",
+    "C_Cpp.formatting": "clangFormat",
     "git.mergeEditor": false,
     // !!! custom theme
     "editor.tokenColorCustomizations": {
@@ -125,8 +129,7 @@
             },
             {
                 "scope": [
-                    "entity.name.namespace", // namespace
-                    "storage.modifier.package.java"
+                    "entity.name.namespace" // namespace
                 ],
                 "settings": {
                     "foreground": "#008080"
@@ -231,6 +234,6 @@
             }
         ]
     },
-
+    "editor.wordWrap": "on",
     "editor.inlayHints.enabled": "offUnlessPressed"
 }
