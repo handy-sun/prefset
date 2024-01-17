@@ -31,4 +31,3 @@ while [ $i -lt ${device_count} ]; do
     let ++i
 done
 
-
