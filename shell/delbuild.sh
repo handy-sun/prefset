@@ -10,7 +10,7 @@ function read_dir(){
                 rm -rf $child_dir
             else
                 read_dir $child_dir
-            fi            
+            fi
             
         fi
     done
