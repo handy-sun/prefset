@@ -543,12 +543,6 @@ chars = "\u001B[24;3~"
 key = "F12"
 mods = "Super"
 
-[[keyboard.bindings]]
-chars = """
-
-"""
-key = "NumpadEnter"
-
 [mouse]
 hide_when_typing = false
 
@@ -566,11 +560,11 @@ history = 10000
 multiplier = 5
 
 [shell]
-args = ["-l"]
+args = ["-l", "-i"]
 program = "/bin/zsh"
 
 [window]
-decorations = "none"
+decorations = "Full"
 dynamic_padding = true
 dynamic_title = true
 opacity = 0.9

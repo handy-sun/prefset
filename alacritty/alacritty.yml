@@ -10,6 +10,7 @@ shell:
   program: /bin/zsh
   args:
     - -l
+    - -i
 
 window:
   dimensions:
@@ -27,7 +28,7 @@ window:
   ## Values for `decorations`:
   ## - full: Borders and title bar
   ## - none: Neither borders nor title bar
-  decorations: none
+  decorations: Full
   opacity: 0.9
 
 scrolling:
@@ -171,4 +172,4 @@ key_bindings:
   - { key: F10,      mods: Super,   chars: "\x1b[21;3~"                      }
   - { key: F11,      mods: Super,   chars: "\x1b[23;3~"                      }
   - { key: F12,      mods: Super,   chars: "\x1b[24;3~"                      }
-  - { key: NumpadEnter,             chars: "\n"                              }
+  # - { key: NumpadEnter,             chars: "\n"                              }
