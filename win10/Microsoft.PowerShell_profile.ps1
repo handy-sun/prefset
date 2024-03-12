@@ -1,24 +1,21 @@
-## Location: $PROFILE
-## is equal to:
-## $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+## Location: $PROFILE ($HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1)
 
-## Install-Module -Name PSReadLine -AllowPrerelease -Scope AllUsers -Force -SkipPublisherCheck
 Import-Module PSReadLine
-
-## Install-Module -Name posh-git -Scope AllUsers -Force -SkipPublisherCheck -Verbose
 Import-Module posh-git
 
-# Set-ExecutionPolicy Bypass -Scope Process -Force; Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://ohmyposh.dev/install.ps1'))
-# oh-my-posh font install
-## donnot use: Import-Module oh-my-posh
-## use theme powerlevel10k_lean
+## use theme powerlevel10k_lean, donnot use command: Import-Module oh-my-posh
 oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/powerlevel10k_lean.omp.json" | Invoke-Expression
 
 ## ------------------------------- Set Hot-keys BEGIN -------------------------------
 # 设置预测文本来源为历史记录
 Set-PSReadLineOption -PredictionSource History
+# 设置预测文本的颜色
+Set-PSReadLineOption -Colors @{
+    InlinePrediction = '87afaf'
+}
 # 每次回溯输入历史，光标定位于输入内容末尾
 Set-PSReadLineOption -HistorySearchCursorMovesToEnd
+
 # 设置 Tab 为菜单补全和 Intellisense
 Set-PSReadLineKeyHandler -Key "Tab" -Function MenuComplete
 # 设置 Ctrl+d 为退出 PowerShell
@@ -40,4 +37,3 @@ Set-Location "$HOME"
 
 ## Python 直接执行
 # $env:PATHEXT += ";.py"
-
