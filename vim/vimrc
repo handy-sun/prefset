@@ -169,7 +169,8 @@ let mapleader = "\<space>"
 
 " ------- normal noremap -------
 nnoremap <space>s :w<CR>
-nnoremap <space>q :wqa<CR>
+nnoremap <space>q :wq<CR>
+nnoremap <space>Q :wqa<CR>
 nnoremap <space>e :q!<CR>
 nnoremap <C-a> ggVG
 " nnoremap <space>2 @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
@@ -220,10 +221,11 @@ nnoremap <leader>fd /\(\<\w\+\>\)\_s*\1
 nnoremap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
 nnoremap <leader><CR> i<CR><Esc>k$
+" Move to a new line
 
 " ------- insert noremap -------
-inoremap <C-d> <Esc>ddi " delete one line
-inoremap <C-z> <Esc>ui  " undo
+inoremap <C-d> <Esc>ddi
+inoremap <C-z> <Esc>ui
 inoremap <C-u> <C-G>u<C-U>
 inoremap <C-b> <C-Left>
 inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
