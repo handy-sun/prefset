@@ -221,7 +221,6 @@ nnoremap <leader>fd /\(\<\w\+\>\)\_s*\1
 nnoremap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
 nnoremap <leader><CR> i<CR><Esc>k$
-" Move to a new line
 
 " ------- insert noremap -------
 inoremap <C-d> <Esc>ddi
