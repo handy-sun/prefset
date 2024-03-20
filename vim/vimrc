@@ -8,14 +8,6 @@ if has('syntax')
     syntax on
 endif
 
-set t_Co=256
-
-let vim_install_path=$VIMRUNTIME
-let theme_file=vim_install_path.'/colors/habamax.vim'
-if filereadable(theme_file)
-    colorscheme habamax
-endif
-
 " filetype
 filetype on
 filetype plugin on              " Enable filetype plugins
@@ -94,17 +86,28 @@ set wildignorecase
 set list
 set listchars=tab:»·,trail:·,nbsp:+
 
+" color & theme [begin]
+set t_Co=256
+
 hi MyTabSpace ctermfg=darkgrey
 match MyTabSpace /\t\| /
 
 " set mark column color
+hi Search cterm=bold ctermbg=darkyellow
+hi CursorLine cterm=NONE gui=NONE term=NONE
+hi CursorLine ctermbg=240
+hi LineNr ctermfg=darkgrey
+hi CursorLineNr term=reverse cterm=bold ctermfg=lightgreen
 hi! link SignColumn   LineNr
 hi! link ShowMarksHLl DiffAdd
 hi! link ShowMarksHLu DiffChange
-hi Search cterm=bold ctermbg=darkyellow
-"hi CursorLine ctermbg=black
-hi LineNr ctermfg=darkgrey
-hi CursorLineNr term=reverse cterm=bold ctermfg=lightgreen
+
+let vim_install_path=$VIMRUNTIME
+let theme_file=vim_install_path.'/colors/habamax.vim'
+if filereadable(theme_file)
+    colorscheme habamax
+endif
+
 
 " status line
 set laststatus=2   " Always show the status line - use 2 lines for the status bar
@@ -130,14 +133,27 @@ hi User6 ctermfg=blue ctermbg=darkgrey
 hi User7 ctermfg=magenta ctermbg=darkgrey
 hi User8 ctermfg=white ctermbg=darkgrey
 hi User9 ctermfg=lightgrey ctermbg=darkgrey
+" color & theme [end]
+
 
 if has('autocmd')
 augroup vimrcEx
-    au FileType python set tabstop=4 shiftwidth=4 expandtab
-    "au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown.mkd
-    "au BufRead,BufNewFile *  setfiletype txt
-    " --- open file at the last edit line
+    "au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown
+    "au BufRead,BufNewFile * setfiletype txt
+    " --- Open file at the last edit line
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+    " --- Auto source vimrc '/etc/vimrc', '/etc/vim/vimrc', $MYVIMRC
+    "au BufReadPost * $VIM_PATH/{*.vim,*.yaml,vimrc} nested source $MYVIMRC | redraw
+    " --- Autoreload
+    au BufWritePost,FileWritePost *.vim nested if &l:autoread > 0 | source <afile> | echo 'source ' . bufname('%') | endif
+    " --- Check if file changed when its window is focus, more eager than 'autoread'
+    au FocusGained * checktime
+    " -- Highlight current line only on focused window
+    au WinEnter,BufEnter,InsertLeave * if ! &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal cursorline | endif
+    au WinLeave,BufLeave,InsertEnter * if &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal nocursorline | endif
+
+    au FileType python set tabstop=4 shiftwidth=4 expandtab
+    au FileType make set noexpandtab shiftwidth=8 softtabstop=0
 augroup END
 endif
 
@@ -170,13 +186,13 @@ let mapleader = "\<space>"
 " ------- normal noremap -------
 nnoremap <space>s :w<CR>
 nnoremap <space>q :wq<CR>
-nnoremap <space>Q :wqa<CR>
+nnoremap <space><bs> :wqa<CR>
 nnoremap <space>e :q!<CR>
 nnoremap <C-a> ggVG
 " nnoremap <space>2 @=((foldclosed(line('.')) < 0) ? 'zc' : 'zo')<CR>
 
 " cancel highlight search word
-nnoremap <silent> <space><bs> :noh<CR>
+nnoremap <silent> <leader><space> :noh<CR>
 " goto next search result and focus on this line
 nnoremap n nzz
 " goto previous search result and focus on this line
@@ -186,6 +202,8 @@ nnoremap N Nzz
 nnoremap <silent> Y y$
 " Delete text to EOL
 nnoremap <silent> D d$
+" Delete text to EOL, and insert
+nnoremap <silent> C c$
 
 " move current line down
 nnoremap = :m +1<CR>
@@ -244,14 +262,17 @@ endfunction
 
 if !exists("*SourceAllVimRc")
     function! SourceAllVimRc()
-        let finls = "sourced files: "
+        let l:finls = ''
+        exec 'wa'
         for file in ['/etc/vimrc', '/etc/vim/vimrc', $MYVIMRC]
             if filereadable(expand(file))
                 exec 'source' file
-                let finls = finls.' '.file
+                let l:finls = l:finls.' '.file
             endif
         endfor
         exec 'noh'
-        echohl finls
+        echo "sourced files:" . l:finls
+        sleep 2
+        redraw!
     endfunction
 endif
