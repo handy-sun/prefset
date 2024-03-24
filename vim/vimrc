@@ -28,7 +28,7 @@ set noswapfile
 " set novisualbell                " turn off visual bell
 set errorbells
 
-set scrolloff=7                 " movement keep 3 lines when scrolling
+set scrolloff=1                 " movement keep 3 lines when scrolling
 set visualbell t_vb=
 
 " show
@@ -72,7 +72,7 @@ set fileformats=unix,dos,mac
 
 " select & complete
 set mouse=a                      " use mouse anywher in buffer"
-set selection=exclusive          " ???exclusive"
+set selection=exclusive          " selection donnot contain the last word
 set selectmode=mouse,key
 
 set completeopt=longest,menu            " coding complete with filetype check
@@ -138,20 +138,19 @@ hi User9 ctermfg=lightgrey ctermbg=darkgrey
 
 if has('autocmd')
 augroup vimrcEx
-    "au BufRead,BufNew *.md,*.mkd,*.markdown  set filetype=markdown
-    "au BufRead,BufNewFile * setfiletype txt
     " --- Open file at the last edit line
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
     " --- Auto source vimrc '/etc/vimrc', '/etc/vim/vimrc', $MYVIMRC
     "au BufReadPost * $VIM_PATH/{*.vim,*.yaml,vimrc} nested source $MYVIMRC | redraw
-    " --- Autoreload
+    " --- Autoreload .vim
     au BufWritePost,FileWritePost *.vim nested if &l:autoread > 0 | source <afile> | echo 'source ' . bufname('%') | endif
     " --- Check if file changed when its window is focus, more eager than 'autoread'
     au FocusGained * checktime
-    " -- Highlight current line only on focused window
+    " --- Highlight current line only on focused window
     au WinEnter,BufEnter,InsertLeave * if ! &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal cursorline | endif
     au WinLeave,BufLeave,InsertEnter * if &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal nocursorline | endif
 
+    au BufRead,BufNew *.md,*.mkd,*.markdown set filetype=markdown
     au FileType python set tabstop=4 shiftwidth=4 expandtab
     au FileType make set noexpandtab shiftwidth=8 softtabstop=0
 augroup END
@@ -177,8 +176,8 @@ set helplang=en
 set formatoptions-=co
 set formatoptions+=mM
 
-let &t_SI .= "\<Esc>[?2004h"
-let &t_EI .= "\<Esc>[?2004l"
+let &t_SI .= "\<Esc>[?2004h"   " start insert enable bracketed paste mode
+let &t_EI .= "\<Esc>[?2004l"   " end insert disable bracketed paste mode
 
 " keyborad bind
 let mapleader = "\<space>"
@@ -272,7 +271,5 @@ if !exists("*SourceAllVimRc")
         endfor
         exec 'noh'
         echo "sourced files:" . l:finls
-        sleep 2
-        redraw!
     endfunction
 endif
