@@ -2,40 +2,37 @@ live_config_reload = true
 
 # from theme: Tango Dark(tango_dark.toml) [begin]
 [colors.primary]
-background = '#2e3436'
-foreground = '#d3d7cf'
+background = '#2E3436'
+foreground = '#CBCBCB'
 
 [colors.normal]
-black = '#2e3436'
-red = '#cc0000'
-green = '#4e9a06'
-yellow = '#c4a000'
-blue = '#3465a4'
-magenta = '#75507b'
-cyan = '#06989a'
-white = '#d3d7cf'
+black = '#1E1E1E'
+red = '#FF6060'
+green = '#0EB16C'
+yellow = '#BEBE12'
+blue = '#1296BE'
+magenta = '#C793FF'
+cyan = '#54CCEF'
+white = '#CCCCCC'
 
 [colors.bright]
-black = '#555753'
-red = '#ef2929'
-green = '#8ae234'
-yellow = '#fce94f'
-blue = '#729fcf'
-magenta = '#ad7fa8'
-cyan = '#34e2e2'
-white = '#eeeeec'
+black = '#5C5C5C'
+red = '#FF8080'
+green = '#18ED93'
+yellow = '#FFE881'
+blue = '#1BBAE9'
+magenta = '#FF7DFF'
+cyan = '#8EDDF4'
+white = '#D4D4D4'
 # from theme: Tango Dark(tango_dark.toml) [end]
 
 [bell]
 animation = "EaseOutExpo"
-color = "0xffffff"
+color = "0xFF0000"
 duration = 0
 
 [cursor]
 vi_mode_style = "None"
-
-[env]
-TERM = "xterm-256color"
 
 [font]
 size = 12.5
@@ -568,17 +565,21 @@ chars = "\u001B[24;3~"
 key = "F12"
 mods = "Super"
 
+[selection]
+semantic_escape_chars = ",│`|:\"'()[]{}<>"
+save_to_clipboard = true
+
 [mouse]
 hide_when_typing = false
 
 [[mouse.bindings]]
 action = "PasteSelection"
-mods = "Control"
 mouse = "Right"
 
+# CopySelection in Linux/BSD exclusive
 [[mouse.bindings]]
-action = "PasteSelection"
-mouse = "Middle"
+action = "CopySelection"
+mouse = "Left"
 
 [scrolling]
 history = 10000
