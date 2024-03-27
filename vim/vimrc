@@ -23,13 +23,25 @@ set shortmess=aTI
 set magic                       " For regular expressions turn magic on
 set title                       " change the terminal's title
 set history=1000                " history : how many lines of history VIM has to remember
+set scrolloff=1                 " movement keep 3 lines when scrolling
+set errorbells
+" set novisualbell                " turn off visual bell
+set visualbell t_vb=
+
 set nobackup                    " do not keep a backup file
 set noswapfile
-" set novisualbell                " turn off visual bell
-set errorbells
 
-set scrolloff=1                 " movement keep 3 lines when scrolling
-set visualbell t_vb=
+" if undodir not set, create this dir and set it
+let t:username = trim(system('id -unz'))
+let t:undodir=expand('/tmp/vim.' . t:username . '/undo')
+" echo t:undodir
+if !isdirectory(t:undodir)
+    silent! call mkdir(t:undodir, 'p')
+endif
+
+set undofile
+exe 'set undodir=' . t:undodir
+
 
 " show
 ""==set nu
@@ -108,7 +120,6 @@ if filereadable(theme_file)
     colorscheme habamax
 endif
 
-
 " status line
 set laststatus=2   " Always show the status line - use 2 lines for the status bar
 set cmdheight=1    " cmdline which under status line height, default = 1
@@ -135,7 +146,6 @@ hi User8 ctermfg=white ctermbg=darkgrey
 hi User9 ctermfg=lightgrey ctermbg=darkgrey
 " color & theme [end]
 
-
 if has('autocmd')
 augroup vimrcEx
     " --- Open file at the last edit line
@@ -149,10 +159,13 @@ augroup vimrcEx
     " --- Highlight current line only on focused window
     au WinEnter,BufEnter,InsertLeave * if ! &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal cursorline | endif
     au WinLeave,BufLeave,InsertEnter * if &cursorline && &filetype !~# '^\(dashboard\|clap_\)' && ! &pvw | setlocal nocursorline | endif
+    " --- These kind of files donnot set undofile    
+    au BufWritePre /tmp/*,COMMIT_EDITMSG,MERGE_MSG,*.tmp,*.bak setlocal noundofile
 
     au BufRead,BufNew *.md,*.mkd,*.markdown set filetype=markdown
     au FileType python set tabstop=4 shiftwidth=4 expandtab
     au FileType make set noexpandtab shiftwidth=8 softtabstop=0
+    au FileType alpha set showtabline=0
 augroup END
 endif
 
@@ -183,6 +196,7 @@ let &t_EI .= "\<Esc>[?2004l"   " end insert disable bracketed paste mode
 let mapleader = "\<space>"
 
 " ------- normal noremap -------
+nnoremap <silent> <S-Tab> :normal za<CR>
 nnoremap <space>s :w<CR>
 nnoremap <space>q :wq<CR>
 nnoremap <space><bs> :wqa<CR>
@@ -232,9 +246,9 @@ nnoremap <leader>' :resize +2<CR>
 
 nnoremap <leader>fe :vsp /etc/vimrc<CR>
 nnoremap <leader>fr :call SourceAllVimRc()<CR>
-" search for word equal to each
+" Search for word equal to each
 nnoremap <leader>fd /\(\<\w\+\>\)\_s*\1
-" trim EOL trailing space
+" Trim EOL trailing space
 nnoremap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
 nnoremap <leader><CR> i<CR><Esc>k$
@@ -245,6 +259,10 @@ inoremap <C-z> <Esc>ui
 inoremap <C-u> <C-G>u<C-U>
 inoremap <C-b> <C-Left>
 inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
+
+" ------- command noremap
+" Complete absolute path of current file (before input the file)
+cnoremap <C-t> <C-R>=expand("%:p:h") . "/" <CR>
 
 " ------- visual noremap -------
 let t_ExistOutput = system('command -v xclip')
