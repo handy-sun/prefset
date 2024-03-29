@@ -65,13 +65,13 @@ set autoindent
 set cindent
 set smartindent                 " ??? only for C language
 set shiftround
-set shiftwidth=4
+" set shiftwidth=4
 " tab
-set tabstop=4                   " tab width
-set softtabstop=4                " insert mode tab and backspace use 4 spaces
+set tabstop=4                   " table key width
+" set softtabstop=4                " insert mode tab and backspace use 4 spaces
 "set noexpandtab                 " donnot use space relace tab
 set smarttab                    " at the beginning of line and section?
-set expandtab                   " expand tabs to spaces
+" set expandtab                   " expand tabs to spaces
 
 " search
 set hlsearch                    " highlight searches
@@ -163,9 +163,14 @@ augroup vimrcEx
     au BufWritePre /tmp/*,COMMIT_EDITMSG,MERGE_MSG,*.tmp,*.bak setlocal noundofile
 
     au BufRead,BufNew *.md,*.mkd,*.markdown set filetype=markdown
+    " au BufRead,BufNewFile * if &filetype == "" | setfiletype txt | endif
+
     au FileType python set tabstop=4 shiftwidth=4 expandtab
+    au FileType yaml set tabstop=2 shiftwidth=2 expandtab
     au FileType make set noexpandtab shiftwidth=8 softtabstop=0
-    au FileType alpha set showtabline=0
+    au FileType lua set noexpandtab shiftwidth=4 softtabstop=0
+    au FileType cmake,systemd setlocal commentstring=#\ %s
+    " au FileType alpha set showtabline=0
 augroup END
 endif
 
@@ -219,9 +224,15 @@ nnoremap <silent> D d$
 nnoremap <silent> C c$
 
 " move current line down
-nnoremap = :m +1<CR>
+nnoremap <A-Down> :m +1<CR>
 " move current line up
-nnoremap - :m -2<CR>
+nnoremap <A-Up> :m -2<CR>
+
+nnoremap <leader><Up> yyP
+nnoremap <leader><Down> yyp
+
+nnoremap <C-c> yiw
+nnoremap <C-v> viwP
 
 nnoremap tn :tabnew<CR>
 nnoremap tk :tabnext<CR>
@@ -239,8 +250,8 @@ nnoremap <C-l> :wincmd l<CR>
 nnoremap <C-j> :wincmd j<CR>
 nnoremap <C-k> :wincmd k<CR>
 
-nnoremap <leader>[ :vertical resize -5<CR>
-nnoremap <leader>] :vertical resize +5<CR>
+nnoremap <leader>[ :vertical resize -4<CR>
+nnoremap <leader>] :vertical resize +4<CR>
 nnoremap <leader>; :resize -2<CR>
 nnoremap <leader>' :resize +2<CR>
 
@@ -252,11 +263,17 @@ nnoremap <leader>fd /\(\<\w\+\>\)\_s*\1
 nnoremap <leader>W :%s/\s\+$//<CR>:let @/=''<CR>
 " Enter break line
 nnoremap <leader><CR> i<CR><Esc>k$
+nnoremap <leader>\ :call ConfigureIndentLines()<CR>
+
+xnoremap <  <gv
+xnoremap >  >gv
 
 " ------- insert noremap -------
 inoremap <C-d> <Esc>ddi
 inoremap <C-z> <Esc>ui
 inoremap <C-u> <C-G>u<C-U>
+inoremap <C-k> <C-o>D
+
 inoremap <C-b> <C-Left>
 inoremap <special> <expr> <Esc>[200~ XTermPasteBegin()
 
@@ -280,14 +297,14 @@ endfunction
 if !exists("*SourceAllVimRc")
     function! SourceAllVimRc()
         let l:finls = ''
-        exec 'wa'
+        exe 'wa'
         for file in ['/etc/vimrc', '/etc/vim/vimrc', $MYVIMRC]
             if filereadable(expand(file))
-                exec 'source' file
+                exe 'source' file
                 let l:finls = l:finls.' '.file
             endif
         endfor
-        exec 'noh'
+        exe 'noh'
         echo "sourced files:" . l:finls
     endfunction
 endif
