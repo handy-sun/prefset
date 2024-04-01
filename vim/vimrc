@@ -231,8 +231,6 @@ nnoremap <A-Up> :m -2<CR>
 nnoremap <leader><Up> yyP
 nnoremap <leader><Down> yyp
 
-nnoremap <C-c> yiw
-nnoremap <C-v> viwP
 
 nnoremap tn :tabnew<CR>
 nnoremap tk :tabnext<CR>
