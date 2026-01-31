@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/rclone mount als: /mnt/als --uid=1000 --gid=1000 --umask=027 --config=/home/qi/.config/rclone/rclone.conf --log-file=/var/log/rclone-als.log --cache-dir=/var/cache --use-mmap --allow-other --allow-non-empty --dir-cache-time 2m --vfs-cache-mode full --buffer-size 512M --vfs-read-chunk-size 16M --vfs-read-chunk-size-limit 64M --vfs-cache-max-size 10G -v
+ExecStart=/usr/bin/rclone mount als: /mnt/als --uid=1000 --gid=1000 --umask=027 --config=/home/qi/.config/rclone/rclone.conf --log-file=/var/log/rclone-als.log --cache-dir=/var/cache --use-mmap --allow-other --allow-non-empty --dir-cache-time 2m --vfs-cache-mode writes --buffer-size 512M --vfs-read-chunk-size 16M --vfs-read-chunk-size-limit 64M --vfs-cache-max-size 10G -v
 ExecStop=/bin/fusermount -uz /mnt/als
 Restart=on-abort
 RestartSec=30
