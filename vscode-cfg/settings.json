@@ -1,5 +1,4 @@
 {
-    "editor.fontSize": 20,
     "workbench.colorTheme": "Atom One Dark",
     "workbench.startupEditor": "newUntitledFile",
     "debug.onTaskErrors": "showErrors",
@@ -19,7 +18,6 @@
     "C_Cpp.clang_format_fallbackStyle": "LLVM",
     "python.showStartPage": false,
     "python.pythonPath": "C:\\Python38\\python.exe",
-    "workbench.editor.empty.hint": "hidden",
     "workbench.editorAssociations": {
         "*.ipynb": "jupyter-notebook"
     },
@@ -30,7 +28,6 @@
         // "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker",
         ]
     },
-    "terminal.integrated.fontSize": 18,
     "security.workspace.trust.untrustedFiles": "open",
     "notebook.cellToolbarLocation": {
         "default": "right",
@@ -55,35 +52,39 @@
         "comments": "off",
         "strings": "off"
     },
-    "editor.minimap.enabled": false,
     "C_Cpp.autocomplete": "disabled",
+    "[cpp]": {
+        "editor.quickSuggestions": true
+    },
     "[c]": {
         "editor.quickSuggestions": {
             "comments": "on",
             "strings": "on",
             "other": "on"
         },
-        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        // "editor.defaultFormatter": "chiehyu.vscode-astyle"
     },
     "editor.suggest.snippetsPreventQuickSuggestions": false,
-
+    "remote.SSH.remotePlatform": {
+        "10.144.1.9": "linux",
+        "manlan": "linux",
+        "handyMac": "macOS"
+    },
     "hexeditor.columnWidth": 16,
     "hexeditor.showDecodedText": true,
     "hexeditor.defaultEndianness": "little",
     "hexeditor.inspectorType": "aside",
     "explorer.confirmDelete": false,
     "git.confirmSync": false,
-    "diffEditor.ignoreTrimWhitespace": false,
     "clangd.detectExtensionConflicts": false,
     "git.openRepositoryInParentFolders": "never",
     "gitlens.advanced.messages": {
         "suppressLineUncommittedWarning": true
     },
-        // "C_Cpp.intelliSenseEngine": "disabled"
+    // "C_Cpp.intelliSenseEngine": "disabled"
     "C_Cpp.default.cppStandard": "c++20",
-    "C_Cpp.default.cStandard": "c99",
-    "C_Cpp.formatting": "clangFormat",
-    "git.mergeEditor": false,
+    "C_Cpp.default.cStandard": "c11",
     // !!! custom theme
     "editor.tokenColorCustomizations": {
         "comments": "#57943d",
@@ -119,6 +120,16 @@
                     "fontStyle": "bold"
                 }
             },
+            // {
+            //     "scope": [
+            //         // 重载运算符函数
+            //         "meta.function.definition.special.operator-overload.cpp",
+            //     ],
+            //     "settings": {
+            //         "foreground": "#376ee4",
+            //         "fontStyle": "italic bold"
+            //     }
+            // },{ "scope":[] },
             {
                 "scope": [
                     "entity.name.type.cpp" // type
@@ -234,6 +245,56 @@
             }
         ]
     },
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "markdown-preview-enhanced.previewTheme": "atom-light.css",
+    "files.associations": {
+        "*.S": "asm",
+        "default": "ini",
+        "vimrc": "ini",
+        "*.yml": "yaml",
+        "*.toml": "toml"
+    },
+    "redhat.telemetry.enabled": true,
+    "terminal.integrated.fontFamily": "'Droid Sans Mono', 'NotoMono Nerd Font Mono', 'SF Mono', Consolas",
     "editor.wordWrap": "on",
-    "editor.inlayHints.enabled": "offUnlessPressed"
+    "cmake.showOptionsMovedNotification": false,
+    "editor.inlayHints.enabled": "offUnlessPressed",
+    "C_Cpp.formatting": "clangFormat",
+    "editor.unicodeHighlight.nonBasicASCII": false,
+    "settingsSync.ignoredExtensions": [
+        "ms-python.python",
+        "github.copilot",
+        "github.copilot-chat",
+        "vscjava.vscode-java-test",
+        "continue.continue"
+    ],
+    "vim.enableNeovim": true,
+    "vim.neovimPath": "C:\\Program1\\nvim-win64\\bin\\nvim.exe",
+    "vim.neovimUseConfigFile": true,
+    "editor.accessibilitySupport": "off",
+    "cmake.pinnedCommands": [
+        "workbench.action.tasks.configureTaskRunner",
+        "workbench.action.tasks.runTask"
+    ],
+    "[lua]": {
+        "editor.defaultFormatter": "sumneko.lua"
+    },
+    "editor.minimap.renderCharacters": false,
+    "editor.minimap.enabled": false,
+    "editor.fontFamily": "'Droid Sans Mono', 'SF Mono', 'NotoMono Nerd Font Mono', monospace",
+    "editor.fontSize": 16,
+    "terminal.integrated.fontSize": 15,
+    "rust-analyzer.lens.implementations.enable": false,
+    "gitlens.codeLens.enabled": false,
+    "update.mode": "manual",
+    "remote.SSH.configFile": "~/.ssh/config",
+    "terminal.integrated.enableFileLinks": "notRemote",
+    "terminal.integrated.persistentSessionScrollback": 500,
+    "terminal.integrated.scrollback": 9000,
+    "extensions.autoUpdate": false,
+    "workbench.iconTheme": "vscode-icons",
+    "better-yaml.indentSeq": true,
+    "vsicons.dontShowNewVersionMessage": true
 }
