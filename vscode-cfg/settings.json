@@ -1,90 +1,4 @@
 {
-    "workbench.colorTheme": "Atom One Dark",
-    "workbench.startupEditor": "newUntitledFile",
-    "debug.onTaskErrors": "showErrors",
-    "task.slowProviderWarning": [
-        "npm"
-    ],
-    "cmake.configureOnOpen": true,
-    "editor.columnSelection": false,
-    "[cpp]": {
-        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
-        "editor.quickSuggestions": {
-            "comments": "on",
-            "strings": "on",
-            "other": "on"
-        }
-    },
-    "C_Cpp.clang_format_fallbackStyle": "LLVM",
-    "python.showStartPage": false,
-    "python.pythonPath": "C:\\Python38\\python.exe",
-    "workbench.editorAssociations": {
-        "*.ipynb": "jupyter-notebook"
-    },
-    "files.autoGuessEncoding": true,
-    "files.defaultLanguage": "${activeEditorLanguage}",
-    "launch": {
-        "configurations": [
-        // "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker",
-        ]
-    },
-    "security.workspace.trust.untrustedFiles": "open",
-    "notebook.cellToolbarLocation": {
-        "default": "right",
-        "jupyter-notebook": "left"
-    },
-    "git.enableSmartCommit": true,
-    "background.enabled": false,
-    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
-    // 关闭检测第一个tab后面就tab
-    "editor.detectIndentation": false,
-    // 制表符显示->
-    "editor.renderControlCharacters": true,
-    // 空格显示...
-    "editor.renderWhitespace": "all", 
-    // tab为四个空格
-    "editor.tabSize": 4,
-    // 转为空格
-    "editor.insertSpaces": true,
-    "editor.quickSuggestions": {
-
-        "other": "on",
-        "comments": "off",
-        "strings": "off"
-    },
-    "C_Cpp.autocomplete": "disabled",
-    "[cpp]": {
-        "editor.quickSuggestions": true
-    },
-    "[c]": {
-        "editor.quickSuggestions": {
-            "comments": "on",
-            "strings": "on",
-            "other": "on"
-        },
-        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
-        // "editor.defaultFormatter": "chiehyu.vscode-astyle"
-    },
-    "editor.suggest.snippetsPreventQuickSuggestions": false,
-    "remote.SSH.remotePlatform": {
-        "10.144.1.9": "linux",
-        "manlan": "linux",
-        "handyMac": "macOS"
-    },
-    "hexeditor.columnWidth": 16,
-    "hexeditor.showDecodedText": true,
-    "hexeditor.defaultEndianness": "little",
-    "hexeditor.inspectorType": "aside",
-    "explorer.confirmDelete": false,
-    "git.confirmSync": false,
-    "clangd.detectExtensionConflicts": false,
-    "git.openRepositoryInParentFolders": "never",
-    "gitlens.advanced.messages": {
-        "suppressLineUncommittedWarning": true
-    },
-    // "C_Cpp.intelliSenseEngine": "disabled"
-    "C_Cpp.default.cppStandard": "c++20",
-    "C_Cpp.default.cStandard": "c11",
     // !!! custom theme
     "editor.tokenColorCustomizations": {
         "comments": "#57943d",
@@ -120,16 +34,6 @@
                     "fontStyle": "bold"
                 }
             },
-            // {
-            //     "scope": [
-            //         // 重载运算符函数
-            //         "meta.function.definition.special.operator-overload.cpp",
-            //     ],
-            //     "settings": {
-            //         "foreground": "#376ee4",
-            //         "fontStyle": "italic bold"
-            //     }
-            // },{ "scope":[] },
             {
                 "scope": [
                     "entity.name.type.cpp" // type
@@ -245,10 +149,44 @@
             }
         ]
     },
-    "[python]": {
-        "editor.formatOnType": true
+    "editor.fontSize": 16,
+    "editor.wordWrap": "on",
+    "editor.fontFamily": "'Droid Sans Mono', 'SF Mono', 'NotoMono Nerd Font Mono', monospace",
+    "editor.inlayHints.enabled": "offUnlessPressed",
+    "editor.detectIndentation": true,
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.renderControlCharacters": true,
+    "editor.renderWhitespace": "all", 
+    "editor.columnSelection": false,
+    "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.minimap.renderCharacters": false,
+    "editor.minimap.enabled": false,
+    "editor.unicodeHighlight.nonBasicASCII": false,
+    "editor.accessibilitySupport": "off",
+    "editor.quickSuggestions": {
+        "other": "on",
+        "comments": "off",
+        "strings": "off"
     },
-    "markdown-preview-enhanced.previewTheme": "atom-light.css",
+    "terminal.integrated.fontFamily": "'Droid Sans Mono', 'NotoMono Nerd Font Mono', 'SF Mono', Consolas",
+    "terminal.integrated.fontSize": 15,
+    "terminal.integrated.enableFileLinks": "notRemote",
+    "terminal.integrated.persistentSessionScrollback": 500,
+    "terminal.integrated.scrollback": 9000,
+    "update.mode": "default",
+    "vsicons.dontShowNewVersionMessage": true,
+    "extensions.autoUpdate": false,
+    "workbench.iconTheme": "vscode-icons",
+    "workbench.colorTheme": "Atom One Dark",
+    "workbench.startupEditor": "newUntitledFile",
+    "debug.onTaskErrors": "showErrors",
+    "task.slowProviderWarning": [
+        "npm"
+    ],
+    "files.autoGuessEncoding": true,
+    "files.defaultLanguage": "${activeEditorLanguage}",
     "files.associations": {
         "*.S": "asm",
         "default": "ini",
@@ -256,13 +194,38 @@
         "*.yml": "yaml",
         "*.toml": "toml"
     },
-    "redhat.telemetry.enabled": true,
-    "terminal.integrated.fontFamily": "'Droid Sans Mono', 'NotoMono Nerd Font Mono', 'SF Mono', Consolas",
-    "editor.wordWrap": "on",
-    "cmake.showOptionsMovedNotification": false,
-    "editor.inlayHints.enabled": "offUnlessPressed",
+    "launch": {
+        "configurations": [
+            // "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker",
+        ]
+    },
+    "security.workspace.trust.untrustedFiles": "open",
+    "notebook.cellToolbarLocation": {
+        "default": "right",
+        "jupyter-notebook": "left"
+    },
+    "remote.SSH.configFile": "~/.ssh/config",
+    "remote.SSH.remotePlatform": {
+        "manlan": "linux",
+        "handyMac": "macOS"
+    },
+    "hexeditor.columnWidth": 16,
+    "hexeditor.showDecodedText": true,
+    "hexeditor.defaultEndianness": "little",
+    "hexeditor.inspectorType": "aside",
+    "explorer.confirmDelete": false,
+    "clangd.detectExtensionConflicts": false,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.openRepositoryInParentFolders": "never",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.autocomplete": "disabled",
+    "C_Cpp.clang_format_fallbackStyle": "LLVM",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c11",
     "C_Cpp.formatting": "clangFormat",
-    "editor.unicodeHighlight.nonBasicASCII": false,
+    "markdown-preview-enhanced.previewTheme": "atom-light.css",
+    "redhat.telemetry.enabled": true,
     "settingsSync.ignoredExtensions": [
         "ms-python.python",
         "github.copilot",
@@ -270,31 +233,47 @@
         "vscjava.vscode-java-test",
         "continue.continue"
     ],
-    "vim.enableNeovim": true,
-    "vim.neovimPath": "C:\\Program1\\nvim-win64\\bin\\nvim.exe",
-    "vim.neovimUseConfigFile": true,
-    "editor.accessibilitySupport": "off",
+    "cmake.configureOnOpen": true,
     "cmake.pinnedCommands": [
         "workbench.action.tasks.configureTaskRunner",
         "workbench.action.tasks.runTask"
     ],
-    "[lua]": {
-        "editor.defaultFormatter": "sumneko.lua"
+    "[python]": {
+        "editor.formatOnType": true
     },
-    "editor.minimap.renderCharacters": false,
-    "editor.minimap.enabled": false,
-    "editor.fontFamily": "'Droid Sans Mono', 'SF Mono', 'NotoMono Nerd Font Mono', monospace",
-    "editor.fontSize": 16,
-    "terminal.integrated.fontSize": 15,
+    "[lua]": {
+        "editor.insertSpaces": false,
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+    },
+    "[javascript]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2
+    },
+    "[cpp]": {
+        // "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        }
+    },
+    "[c]": {
+        "editor.quickSuggestions": {
+            "comments": "on",
+            "strings": "on",
+            "other": "on"
+        },
+        // "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+    },
     "rust-analyzer.lens.implementations.enable": false,
     "gitlens.codeLens.enabled": false,
-    "update.mode": "manual",
-    "remote.SSH.configFile": "~/.ssh/config",
-    "terminal.integrated.enableFileLinks": "notRemote",
-    "terminal.integrated.persistentSessionScrollback": 500,
-    "terminal.integrated.scrollback": 9000,
-    "extensions.autoUpdate": false,
-    "workbench.iconTheme": "vscode-icons",
-    "better-yaml.indentSeq": true,
-    "vsicons.dontShowNewVersionMessage": true
+    "gitlens.advanced.messages": {
+        "suppressLineUncommittedWarning": true
+    },
+    "colorize.languages": [
+        "javascript",
+        "lua",
+        "toml"
+    ],
+    "security.promptForLocalFileProtocolHandling": false
 }
