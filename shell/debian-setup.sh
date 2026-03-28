@@ -29,7 +29,9 @@ _pkginsy git git-man vim xclip tmux coreutils net-tools p7zip-full pigz unzip un
 
 _pkginsy zsh rsync nginx-full trash-cli jq htop btop multitail gnupg tree aria2 acme.sh
 
-_pkginsy duf fzf xxd
+_pkginsy duf fzf xxd du-dust
+
+_pkginsy make build-essential
 
 # ## debian12 Testing (trixie)
 _pkginsy docker-cli docker.io docker-compose
@@ -66,6 +68,6 @@ fi
 # unset sqlite3_path
 
 ## c,cpp tools
-# _pkginsy build-essential clang clang-format lldb cmake ninja-build
+# _pkginsy clang clang-format lldb cmake ninja-build
 ## jdk8 jre8
 # _pkginsy openjdk-8-jdk openjdk-8-jre
