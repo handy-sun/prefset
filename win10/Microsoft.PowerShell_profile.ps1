@@ -32,8 +32,45 @@ Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
 Set-Location "$HOME"
 
 ## ------------------------------- append into $env:path -------------------------------
-# $env:Path = "$env:PATH;C:\Intel\"
-# $env:Path += ";$HOME\AppData\Local\Programs\oh-my-posh\bin"
+
+# Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): 2025-02-14 22:36:20 +8:00
+function JudgeAndAddToPath {
+    param (
+        [string]$DirectoryPath
+    )
+
+    # 检查 DirectoryPath 是否为空
+    if ([string]::IsNullOrEmpty($DirectoryPath)) {
+        Write-Warning "DirectoryPath is null or empty.  No action taken."
+        return
+    }
+
+    # 确保目录存在
+    if (!(Test-Path -Path $DirectoryPath -PathType Container)) {
+        Write-Warning "Directory '$DirectoryPath' does not exist. No action taken."
+        return
+    }
+
+    # 检查 DirectoryPath 是否已在 Path 中
+    $pathEntries = $env:Path -split ";"
+    if (!($pathEntries -contains $DirectoryPath)) {
+        $env:Path = "$($env:Path);$DirectoryPath"
+        # Write-Host "Added '$DirectoryPath' to the Path environment variable."
+    }
+    # else {
+    #     Write-Host "Directory '$DirectoryPath' is already in the Path environment variable."
+    # }
+}
+
+JudgeAndAddToPath -DirectoryPath "$HOME\AppData\Local\Programs\Ollama"
+JudgeAndAddToPath -DirectoryPath "C:\Program1\helix-dev"
+## ---------------
+$baseDirectory = "$HOME\.dotnet\tools"
+
+$subdirectories = Get-ChildItem -Path $baseDirectory -Directory
+foreach ($subdir in $subdirectories) {
+    JudgeAndAddToPath -DirectoryPath $subdir
+}
 
 ## Python 直接执行
 # $env:PATHEXT += ";.py"
