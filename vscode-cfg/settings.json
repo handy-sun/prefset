@@ -192,7 +192,9 @@
         "default": "ini",
         "vimrc": "ini",
         "*.yml": "yaml",
-        "*.toml": "toml"
+        "*.toml": "toml",
+        "*.plist": "xml",
+        "config": "ini"
     },
     "launch": {
         "configurations": [
@@ -231,7 +233,10 @@
         "github.copilot",
         "github.copilot-chat",
         "vscjava.vscode-java-test",
-        "continue.continue"
+        "continue.continue",
+        "ms-vscode-remote.remote-ssh",
+        "ms-vscode-remote.remote-ssh-edit",
+        "ms-vscode.remote-explorer"
     ],
     "cmake.configureOnOpen": true,
     "cmake.pinnedCommands": [
@@ -243,7 +248,7 @@
     },
     "[lua]": {
         "editor.insertSpaces": false,
-        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+        // "editor.defaultFormatter": "JohnnyMorganz.stylua",
     },
     "[javascript]": {
         "editor.insertSpaces": true,
@@ -275,5 +280,67 @@
         "lua",
         "toml"
     ],
-    "security.promptForLocalFileProtocolHandling": false
+    "github.copilot.enable": {
+        "*": false,
+        "plaintext": false,
+        "markdown": false,
+        "scminput": false,
+        "shellscript": false,
+        "nix": false,
+        "javascript": true,
+        "typescript": true,
+        "json": false,
+        "typescript": true
+    },
+    "github.copilot.nextEditSuggestions.enabled": false,
+    "chat.viewSessions.orientation": "stacked",
+    "security.promptForLocalFileProtocolHandling": false,
+    "nix.enableLanguageServer": true,
+    "nix.serverPath": "nil", // or "nixd", or ["executable", "argument1", ...]
+    // LSP config can be passed via the ``nix.serverSettings.{lsp}`` as shown below.
+    "nix.serverSettings": {
+        // check https://github.com/oxalica/nil/blob/main/docs/configuration.md for all options available
+        "nil": {
+        // "diagnostics": {
+        //  "ignored": ["unused_binding", "unused_with"],
+        // },
+            "formatting": {
+                "command": ["nixfmt"],
+            },
+        },
+        // check https://github.com/nix-community/nixd/blob/main/nixd/docs/configuration.md for all nixd config
+        // "nixd": {
+        //     "formatting": {
+        //         "command": ["nixfmt"],
+        //     },
+        //     "options": {
+        //         // By default, this entry will be read from `import <nixpkgs> { }`.
+        //         // You can write arbitrary Nix expressions here, to produce valid "options" declaration result.
+        //         // Tip: for flake-based configuration, utilize `builtins.getFlake`
+        //         "nixos": {
+        //         "expr": "(builtins.getFlake \"/absolute/path/to/flake\").nixosConfigurations.<name>.options",
+        //         },
+        //         "home-manager": {
+        //         "expr": "(builtins.getFlake \"/absolute/path/to/flake\").homeConfigurations.<name>.options",
+        //         },
+        //         // Tip: use ${workspaceFolder} variable to define path
+        //         "nix-darwin": {
+        //         "expr": "(builtins.getFlake \"${workspaceFolder}/path/to/flake\").darwinConfigurations.<name>.options",
+        //         },
+        //     },
+        // }
+    },
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.selectedModel": "glm-5",
+    "remote.SSH.useLocalServer": false,
+    "claudeCode.autosave": false,
+    "chat.mcp.gallery.enabled": true,
+    "roo-cline.debug": false,
+    "roo-cline.allowedCommands": [
+        "git log",
+        "git diff",
+        "git show"
+    ],
+    "roo-cline.deniedCommands": [],
+    "explorer.confirmDragAndDrop": false
 }
