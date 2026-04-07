@@ -1,0 +1,11 @@
+[Unit]
+Description=A test running process
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-abort
+ExecStart=/usr/local/bin/ntf
+
+[Install]
+WantedBy=multi-user.target
