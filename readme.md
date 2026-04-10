@@ -1,15 +1,14 @@
-# prefset.bak
+# prefset
 
 个人偏好设置与实用脚本的备份存档。涵盖 Linux / Windows / macOS 多平台的编辑器配置、终端配色、Shell 环境、系统服务以及常用工具脚本。
 
-> 此项目之后会逐步向其他仓库迁移。之后会在别的项目更新分模块的详细配置。
 
 ---
 
 ## 目录结构总览
 
 ```
-prefset.bak/
+prefset/
 ├── bat/                  # Windows 批处理脚本
 ├── clang-format/         # Clang-Format 代码格式化配置与文档
 ├── CRT-ColorTheme/       # SecureCRT 关键字高亮配色方案
@@ -161,7 +160,6 @@ prefset.bak/
   - 编辑器字体、缩进、空白渲染等偏好
   - Nix 语言服务器 (nil) 配置
   - 多语言格式化设置（Python / Lua / JS / C / C++）
-  - GitHub Copilot 精细化启停控制
   - 远程 SSH 开发配置
 - **`keybindings.json`** — 自定义快捷键
   - F4 绑定为 C++ 头文件/源文件切换
