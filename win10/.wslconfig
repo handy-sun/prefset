@@ -8,7 +8,7 @@ dnsTunneling=true
 # 如果设置为 true，则 Windows 防火墙规则以及特定于 Hyper-V 流量的规则可以筛选 WSL 网络流量
 firewall=true
 # 强制 WSL 使用 Windows 的 HTTP 代理信息,是否打开看个人的需要（默认值为false）
-#autoProxy=false
+autoProxy=false
 
 [experimental]
 # 检测空闲 CPU 使用率后，自动释放缓存的内存。 设置为 gradual 以慢速释放，设置为 dropcache 以立即释放缓存的内存。（默认值为disable）
