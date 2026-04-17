@@ -1,12 +1,12 @@
-#!env bash
-# set -x
+#!/usr/bin/env bash
+set -e
 
 sh_c(){
   # echo "$@"
   sh -c '$@'
 }
 access_https(){
-  timeout 5s curl --proto '=https' --tlsv1.2 -I -sfSL https://"$1" && echo -e "\033[32mtrue\033[0m" || echo -e "\033[31mfalse\033[0m"
+  timeout 3s curl --proto '=https' --tlsv1.2 -I -sfSL https://"$1" && echo -e "\033[32mtrue\033[0m" || echo -e "\033[31mfalse\033[0m"
   echo
 }
 
