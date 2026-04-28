@@ -1,0 +1,41 @@
+section: screens
+	handydeMac-mini.local:
+		alt = meta
+		meta = alt
+		super = alt
+		halfDuplexCapsLock = false
+		halfDuplexNumLock = false
+		halfDuplexScrollLock = false
+		xtestIsXineramaUnaware = false
+		preserveFocus = false
+		switchCorners = none 
+		switchCornerSize = 0
+	MS-7D17-SQ:
+		halfDuplexCapsLock = false
+		halfDuplexNumLock = false
+		halfDuplexScrollLock = false
+		xtestIsXineramaUnaware = false
+		preserveFocus = false
+		switchCorners = none 
+		switchCornerSize = 0
+end
+
+section: aliases
+end
+
+section: links
+	handydeMac-mini.local:
+		right = MS-7D17-SQ
+	MS-7D17-SQ:
+		left = handydeMac-mini.local
+end
+
+section: options
+	relativeMouseMoves = false
+	screenSaverSync = false
+	win32KeepForeground = false
+	clipboardSharing = true
+	switchCorners = none 
+	switchCornerSize = 0
+end
+
