@@ -26,38 +26,41 @@ if ($dirs) {
 
 <head>
     <title>handyMini</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         html {
             font-family: monospace, consolas
         }
 
         body {
-            font-family: "Microsoft Yahei", consolas, "Noto Sans", sans, monospace
+            font-family: "Microsoft Yahei", consolas, "Noto Sans", sans, monospace;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box
         }
 
         h1 {
-            max-height: 33%;
             text-align: center
         }
 
         .list {
+            max-width: 800px;
+            margin: 0 auto;
             text-align: center;
             font-size: 1.4em;
             font-family: monospace;
-            display: flex;
-            flex-wrap: wrap
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px
         }
 
         .list div {
-            width: 48%;
-            display: block;
-            margin: 5px;
             border-radius: 10px;
             background-color: rgba(255, 255, 255, .3);
-            flex: 1 0 40%;
-            max-width: calc(50% - 10px);
-            box-sizing: border-box;
-            transition: all .3s
+            transition: all .3s;
+            display: flex;
+            align-items: center;
+            justify-content: center
         }
 
         .list div:hover {
@@ -67,9 +70,12 @@ if ($dirs) {
 
         .list div a {
             display: block;
-            height: 2em;
-            line-height: 3em;
-            text-decoration: none
+            padding: 10px 12px;
+            line-height: 1.6em;
+            text-decoration: none;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            text-align: center
         }
 
         .div-bottom a {
@@ -79,9 +85,22 @@ if ($dirs) {
         }
 
         .div-bottom {
-            position: absolute;
-            bottom: 0;
-            width: 95%
+            padding: 2em 0 1em;
+            text-align: center
+        }
+
+        @media (max-width: 600px) {
+            .list {
+                font-size: 1em;
+                grid-template-columns: 1fr
+            }
+            .list div a {
+                line-height: 2em;
+                padding: 8px 6px
+            }
+            h1 {
+                font-size: 1.3em
+            }
         }
     </style>
 </head>
@@ -90,7 +109,7 @@ if ($dirs) {
     <h1>Index Page</h1>
     <div class="list">
 <?php foreach ($hardcoded as $item): ?>
-        <div><a href="<?php echo htmlspecialchars($item['href']); ?>" target="_blank"><?php echo htmlspecialchars($item['text']); ?></a><br></div>
+        <div><a href="<?php echo htmlspecialchars($item['href']); ?>" target="_blank"><?php echo htmlspecialchars($item['text']); ?></a></div>
 <?php endforeach; ?>
     </div><br>
     <div class="div-bottom">
@@ -99,7 +118,7 @@ if ($dirs) {
                         id="hitokoto_text"></a></span></div>
         </center>
     </div>
-    <script type="text/javascript">fetch('https://v1.hitokoto.cn')
+    <script type="text/javascript">fetch('https://v1.hitokoto.cn', {cache: 'no-cache'})
             .then(response => response.json())
             .then(data => {
                 const hitokoto = document.querySelector('#hitokoto_text');
