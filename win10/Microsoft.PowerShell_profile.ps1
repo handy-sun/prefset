@@ -269,10 +269,10 @@ function getproxy {
     Get-itemPropertyValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable,ProxyServer
 }
 
-function enproxy {
+function set_proxy {
     set-itemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value 1
 }
-function disproxy {
+function unset_proxy {
     set-itemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable -Value 0
 }
 
