@@ -1,0 +1,24 @@
+set shell := ["bash", "-uc"]
+
+alias b := build
+
+default:
+  @just --list
+
+merge-bpf:
+  ./scripts/kconfig/merge_config.sh Microsoft/config-wsl tools/testing/selftests/bpf/config
+
+mrp:
+  make mrproper
+
+clean:
+  make clean
+
+build:
+  make -j$(nproc) KCONFIG_CONFIG=Microsoft/config-wsl V=1
+
+head-mod:
+  sudo make modules_install headers_install
+
+menuconfig:
+  make menuconfig KCONFIG_CONFIG=Microsoft/config-wsl
