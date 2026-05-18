@@ -495,12 +495,14 @@ body {
 
   .nav-title { font-size: 14px; flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .nav-controls { gap: 6px; }
+  .nav-controls { gap: 6px; flex-shrink: 0; flex-wrap: nowrap; }
 
-  .search-box { width: 100%; max-width: 180px; }
+  .search-box { width: 120px; }
   .search-box input { padding: 6px 10px 6px 32px; font-size: 13px; }
 
-  .expand-all-btn, .stats-btn { padding: 6px 10px; font-size: 12px; }
+  .expand-all-btn { padding: 6px 10px; font-size: 12px; }
+  .stats-btn, .theme-toggle { padding: 6px 10px; }
+  .btn-label { display: none; }
 
   .sidebar {
     top: 52px;
@@ -656,8 +658,8 @@ body {
       <input type="text" id="searchInput" placeholder="搜索题目或答案..." oninput="filterQuestions()">
     </div>
     <button class="expand-all-btn" onclick="toggleAll()">展开全部</button>
-    <button class="stats-btn" onclick="showStats()">📊 统计</button>
-    <button class="theme-toggle" onclick="toggleTheme()">🌙 暗色</button>
+    <button class="stats-btn" onclick="showStats()">📊<span class="btn-label"> 统计</span></button>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙<span class="btn-label"> 暗色</span></button>
   </div>
 </nav>
 
@@ -993,7 +995,7 @@ function closeSidebar() {
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
-  document.querySelector('.theme-toggle').textContent = isDark ? '🌙 暗色' : '☀️ 亮色';
+  document.querySelector('.theme-toggle').innerHTML = isDark ? '🌙<span class="btn-label"> 暗色</span>' : '☀️<span class="btn-label"> 亮色</span>';
   localStorage.setItem('theme', isDark ? 'light' : 'dark');
 }
 
@@ -1020,7 +1022,7 @@ function showStats() {
   const saved = localStorage.getItem('theme');
   if(saved === 'dark') {
     document.documentElement.setAttribute('data-theme','dark');
-    document.querySelector('.theme-toggle').textContent = '☀️ 亮色';
+    document.querySelector('.theme-toggle').innerHTML = '☀️<span class="btn-label"> 亮色</span>';
   }
 
   // 迁移 mastery 数据（旧索引key → 新哈希key）
