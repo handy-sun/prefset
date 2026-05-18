@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C++ 研发工程师 - 面试题库</title>
+<meta name="description" content="C++ 研发技术题库，涵盖语言核心、系统编程、网络通讯、性能优化等全方位考察点">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f4ff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #6b7280;
+  --question-color: #1a1a2e;
+  --answer-color: #2563eb;
+  --detail-color: #059669;
+  --border-color: #e5e7eb;
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.1);
+  --mastered-bg: #f0fdf4;
+  --mastered-border: #86efac;
+  --unmastered-bg: #fef2f2;
+  --unmastered-border: #fca5a5;
+  --nav-bg: #ffffff;
+  --code-bg: #f3f4f6;
+  --tag-bg: #e0e7ff;
+  --tag-color: #4338ca;
+  --sidebar-bg: #f8f9fa;
+  --progress-bg: #e5e7eb;
+  --progress-fill: #6366f1;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-card-hover: #2d3a52;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --question-color: #f1f5f9;
+  --answer-color: #60a5fa;
+  --detail-color: #34d399;
+  --border-color: #334155;
+  --accent: #818cf8;
+  --accent-light: #1e1b4b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.4);
+  --mastered-bg: #064e3b;
+  --mastered-border: #059669;
+  --unmastered-bg: #450a0a;
+  --unmastered-border: #dc2626;
+  --nav-bg: #1e293b;
+  --code-bg: #0f172a;
+  --tag-bg: #312e81;
+  --tag-color: #a5b4fc;
+  --sidebar-bg: #1e293b;
+  --progress-bg: #334155;
+  --progress-fill: #818cf8;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans SC', 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.7;
+  transition: all 0.3s ease;
+}
+
+/* 顶部导航 */
+.top-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow);
+  padding: 0 24px;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  backdrop-filter: blur(10px);
+}
+
+.nav-title {
+  font-size: 18px; font-weight: 700;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.nav-controls { display: flex; gap: 12px; align-items: center; }
+
+.search-box {
+  position: relative;
+  width: 280px;
+}
+
+.search-box input {
+  width: 100%; padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus { border-color: var(--accent); }
+
+.search-box::before {
+  content: "🔍"; position: absolute;
+  left: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 14px;
+}
+
+.theme-toggle, .expand-all-btn, .stats-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover, .expand-all-btn:hover, .stats-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* 侧边栏 */
+.sidebar {
+  position: fixed; top: 60px; left: 0; bottom: 0;
+  width: 240px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  padding: 16px 0;
+  z-index: 50;
+  transition: transform 0.3s;
+}
+
+.sidebar-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-item .count {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.sidebar-progress {
+  margin: 12px 20px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.progress-bar {
+  height: 6px;
+  background: var(--progress-bg);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--progress-fill), #a78bfa);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 主内容区 */
+.main-content {
+  margin-left: 240px;
+  margin-top: 60px;
+  padding: 24px 32px;
+  max-width: 1200px;
+}
+
+/* 模块区域 */
+.module-section {
+  margin-bottom: 40px;
+}
+
+.module-header {
+  position: sticky;
+  top: 60px;
+  z-index: 10;
+  background: var(--bg-primary);
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.module-title {
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.module-title .icon { font-size: 28px; }
+
+.module-stats {
+  display: flex; gap: 16px; font-size: 13px;
+}
+
+.module-stats span {
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+/* 题目卡片 */
+.question-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+  box-shadow: var(--shadow);
+}
+
+.question-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.question-card.mastered {
+  background: var(--mastered-bg);
+  border-color: var(--mastered-border);
+}
+
+.question-card.unmastered {
+  background: var(--unmastered-bg);
+  border-color: var(--unmastered-border);
+}
+
+.question-header {
+  padding: 16px 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  user-select: none;
+}
+
+.question-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  background: var(--accent);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.question-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--question-color);
+  line-height: 1.6;
+}
+
+.difficulty-tag {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.difficulty-tag.basic {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.difficulty-tag.intermediate {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.difficulty-tag.advanced {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+[data-theme="dark"] .difficulty-tag.basic { background: #1e3a5f; color: #93c5fd; }
+[data-theme="dark"] .difficulty-tag.intermediate { background: #451a03; color: #fcd34d; }
+[data-theme="dark"] .difficulty-tag.advanced { background: #500724; color: #f9a8d4; }
+
+.question-toggle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.3s;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.question-card.open .question-toggle { transform: rotate(180deg); }
+
+.question-body {
+  display: none;
+  padding: 0 20px 16px 64px;
+  border-top: 1px solid var(--border-color);
+}
+
+.question-card.open .question-body { display: block; }
+
+.answer-section {
+  margin-top: 12px;
+}
+
+.answer-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--answer-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.answer-text {
+  color: var(--answer-color);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.8;
+}
+
+.detail-section {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border-left: 3px solid var(--detail-color);
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--detail-color);
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.detail-text {
+  color: var(--detail-color);
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.detail-text code {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.detail-text ul { padding-left: 20px; margin: 4px 0; }
+.detail-text li { margin: 2px 0; }
+
+.scenario-section {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--accent-light);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.scenario-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.scenario-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.mastery-controls {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.mastery-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.mastery-btn.master {
+  background: #059669;
+  color: white;
+  border-color: #059669;
+}
+
+.mastery-btn.unmaster {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.mastery-btn:hover { opacity: 0.8; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { margin-left: 0; padding: 16px; }
+  .search-box { width: 160px; }
+  .question-body { padding-left: 20px; }
+}
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+/* 隐藏项 */
+.hidden { display: none !important; }
+
+/* 过滤按钮 */
+.filter-controls {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.filter-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.filter-btn:hover { border-color: var(--accent); }
+
+/* 排序按钮组 */
+.sort-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 2px solid var(--border-color);
+}
+.sort-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sort-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.sort-btn.active {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+}
+.sort-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<nav class="top-nav">
+  <div class="nav-title">🚀 C++ 研发工程师核心通关宝典</div>
+  <div class="nav-controls">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜索题目或答案..." oninput="filterQuestions()">
+    </div>
+    <button class="expand-all-btn" onclick="toggleAll()">展开全部</button>
+    <button class="stats-btn" onclick="showStats()">📊 统计</button>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 暗色</button>
+  </div>
+</nav>
+
+<!-- 侧边栏 -->
+<aside class="sidebar" id="sidebar">
+  <div id="sidebarNav"></div>
+  <div class="sidebar-progress">
+    <div style="font-size:13px;font-weight:600;color:var(--text-primary)">学习进度</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-text" id="progressText">已掌握 0 / 0 题</div>
+  </div>
+</aside>
+
+<!-- 主内容 -->
+<main class="main-content" id="mainContent">
+  <div class="filter-controls">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">全部</button>
+    <button class="filter-btn" data-filter="mastered" onclick="setFilter('mastered')">✅ 已掌握</button>
+    <button class="filter-btn" data-filter="unmastered" onclick="setFilter('unmastered')">❌ 未掌握</button>
+    <button class="filter-btn" data-filter="unmarked" onclick="setFilter('unmarked')">⬜ 未标记</button>
+    <button class="filter-btn" data-filter="basic" onclick="setFilter('basic')">初级</button>
+    <button class="filter-btn" data-filter="intermediate" onclick="setFilter('intermediate')">中级</button>
+    <button class="filter-btn" data-filter="advanced" onclick="setFilter('advanced')">高级</button>
+    <div class="sort-group">
+      <span class="sort-label">排列：</span>
+      <button class="sort-btn active" data-sort="mixed" onclick="setSortMode('mixed')">🔀 混合</button>
+      <button class="sort-btn" data-sort="ordered" onclick="setSortMode('ordered')">📊 顺序</button>
+    </div>
+  </div>
+
+  <div id="questionsContainer">
+    <!-- 题目将在这里动态生成 -->
+    <p style="padding:40px;text-align:center;color:var(--text-secondary)">正在加载题目数据...</p>
+  </div>
+</main>
+
+
+<script>
+// 动态加载器：自动检测当前 HTML 所在目录，无论 miniserve 从哪个路径启动都能正确加载
+// function() {
+//  var base = location.href.replace(/\/[^\/]*$/, '/');
+//  ['cpp_category_1','cpp_category_2','cpp_category_3',
+//   'cpp_category_4','cpp_category_5','cpp_category_6'].forEach(function(name) {
+//    document.write('<script src="https://chirsemby.top:8000/Interview/CPP/'&#32;+&#32;base&#32;+&#32;name&#32;+&#32;'.js"><\/script>');
+//  });
+// )();
+</script>
+<script src="./cpp_category_1.js"></script>
+<script src="./cpp_category_2.js"></script>
+<script src="./cpp_category_3.js"></script>
+<script src="./cpp_category_4.js"></script>
+<script src="./cpp_category_5.js"></script>
+<script src="./cpp_category_6.js"></script>
+<script>
+// ========== 数据定义 ==========
+const modules = [
+  { id: "cplusplus_core", title: "C++ 语言核心与基础", icon: "💻", questions: (typeof cppQuestions_Category1 !== 'undefined' && cppQuestions_Category1["cplusplus_core"]) ? cppQuestions_Category1["cplusplus_core"] : [] },
+  { id: "os_and_system", title: "操作系统与系统层编程", icon: "🐧", questions: (typeof cppQuestions_Category2 !== 'undefined' && cppQuestions_Category2["os_and_system"]) ? cppQuestions_Category2["os_and_system"] : [] },
+  { id: "arch_and_storage", title: "系统架构与后端存储", icon: "💾", questions: (typeof cppQuestions_Category3 !== 'undefined' && cppQuestions_Category3["arch_and_storage"]) ? cppQuestions_Category3["arch_and_storage"] : [] },
+  { id: "perf_optimization", title: "极致性能优化实战", icon: "🚀", questions: (typeof cppQuestions_Category4 !== 'undefined' && cppQuestions_Category4["perf_optimization"]) ? cppQuestions_Category4["perf_optimization"] : [] },
+  { id: "embedded_gui", title: "终端音视频与软硬结合", icon: "📺", questions: (typeof cppQuestions_Category5 !== 'undefined' && cppQuestions_Category5["embedded_gui"]) ? cppQuestions_Category5["embedded_gui"] : [] },
+  { id: "engineering_ops", title: "工程规范与可观测体系", icon: "👁️", questions: (typeof cppQuestions_Category6 !== 'undefined' && cppQuestions_Category6["engineering_ops"]) ? cppQuestions_Category6["engineering_ops"] : [] }
+];
+
+// ========== 交互逻辑 ==========
+let allExpanded = false;
+let currentFilter = 'all';
+let currentSortMode = localStorage.getItem('cppSortMode') || 'mixed';
+
+// -- 题目内容哈希函数（生成稳定的mastery key）--
+function hashQuestion(moduleId, q) {
+  // 用题目文本前40字符生成唯一标识，避免排序后索引变化导致标记错位
+  const raw = q.q.replace(/[\s\n]/g, '').substring(0, 40);
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) {
+    hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+  }
+  return `${moduleId}_${Math.abs(hash).toString(36)}`;
+}
+
+// -- 迁移旧 mastery 数据（索引key → 哈希key）--
+function migrateMasteryData() {
+  const oldData = JSON.parse(localStorage.getItem('cppMasteryData') || '{}');
+  const migrated = localStorage.getItem('cppMasteryMigrated');
+  if (migrated === 'v2') return oldData; // 已迁移过
+
+  const newData = {};
+  let hasMigration = false;
+
+  // 将已有的哈希key数据先保留
+  Object.keys(oldData).forEach(key => {
+    if (key.includes('_')) {
+      // 已经是新格式哈希key
+      newData[key] = oldData[key];
+    }
+  });
+
+  // 迁移旧的「moduleId-index」格式key
+  modules.forEach(m => {
+    m.questions.forEach((q, i) => {
+      const oldKey = `${m.id}-${i}`;
+      if (oldData[oldKey]) {
+        const newKey = hashQuestion(m.id, q);
+        if (!newData[newKey]) { // 不覆盖已有的新key
+          newData[newKey] = oldData[oldKey];
+          hasMigration = true;
+        }
+      }
+    });
+  });
+
+  if (hasMigration || Object.keys(oldData).length > 0) {
+    localStorage.setItem('cppMasteryData', JSON.stringify(newData));
+  }
+  localStorage.setItem('cppMasteryMigrated', 'v2');
+  return newData;
+}
+
+let masteryData = {}; // 初始化后再赋值
+let currentModule = localStorage.getItem('cppCurrentModule') || 'cplusplus_core';
+
+// -- 保存每个模块的原始题目顺序 --
+const originalOrder = {};
+modules.forEach(m => {
+  originalOrder[m.id] = [...m.questions];
+});
+
+// -- 排序函数 --
+const lvOrder = { basic: 0, intermediate: 1, advanced: 2 };
+
+function sortAllModules(mode) {
+  modules.forEach(m => {
+    if (mode === 'ordered') {
+      m.questions.sort((a, b) => (lvOrder[a.lv] || 0) - (lvOrder[b.lv] || 0));
+    } else {
+      // mixed: 恢复原始顺序
+      m.questions = [...originalOrder[m.id]];
+    }
+  });
+}
+
+function setSortMode(mode) {
+  currentSortMode = mode;
+  localStorage.setItem('cppSortMode', mode);
+  // 更新按钮状态
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === mode));
+  // 排序并重新渲染
+  sortAllModules(mode);
+  renderQuestions();
+  applyFilters();
+}
+
+function renderSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  nav.innerHTML = modules.map(m => `
+    <div class="sidebar-item ${m.id === currentModule ? 'active' : ''}" data-module="${m.id}" onclick="switchModule('${m.id}')">
+      <span>${m.icon}</span>
+      <span>${m.title}</span>
+      <span class="count">${m.questions.length}</span>
+    </div>
+  `).join('');
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questionsContainer');
+  const m = modules.find(mod => mod.id === currentModule);
+  if (!m) return;
+  container.innerHTML = `
+    <section class="module-section" id="module-${m.id}">
+      <div class="module-header">
+        <div class="module-title"><span class="icon">${m.icon}</span>${m.title}</div>
+        <div class="module-stats">
+          <span>共 ${m.questions.length} 题</span>
+          <span id="stats-${m.id}">已掌握 0</span>
+        </div>
+      </div>
+      ${m.questions.map((q, i) => {
+        const key = hashQuestion(m.id, q);
+        const mastery = masteryData[key] || '';
+        const lvLabel = q.lv === 'basic' ? '初级' : q.lv === 'intermediate' ? '中级' : '高级';
+        return `
+        <div class="question-card ${mastery}" data-key="${key}" data-module="${m.id}" data-level="${q.lv}" id="q-${key}">
+          <div class="question-header" onclick="toggleQuestion('${key}')">
+            <span class="question-num">${i+1}</span>
+            <span class="question-text">${q.q}</span>
+            <span class="difficulty-tag ${q.lv}">${lvLabel}</span>
+            <span class="question-toggle">▼</span>
+          </div>
+          <div class="question-body">
+            <div class="answer-section">
+              <div class="answer-label">💡 答案</div>
+              <div class="answer-text">${q.a}</div>
+            </div>
+            ${q.d ? `<div class="detail-section">
+              <div class="detail-label">📖 详细说明</div>
+              <div class="detail-text">${q.d}</div>
+            </div>` : ''}
+            ${q.s ? `<div class="scenario-section">
+              <div class="scenario-label">🎯 实际场景</div>
+              <div class="scenario-text">${q.s}</div>
+            </div>` : ''}
+            <div class="mastery-controls">
+              <button class="mastery-btn master" onclick="setMastery('${key}','mastered')">✅ 已掌握</button>
+              <button class="mastery-btn unmaster" onclick="setMastery('${key}','unmastered')">❌ 未掌握</button>
+              <button class="mastery-btn" onclick="setMastery('${key}','')">⬜ 清除标记</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </section>
+  `;
+  updateProgress();
+  updateModuleStats();
+}
+
+function toggleQuestion(key) {
+  const card = document.getElementById(`q-${key}`);
+  if(card) card.classList.toggle('open');
+}
+
+function toggleAll() {
+  allExpanded = !allExpanded;
+  document.querySelectorAll('.question-card').forEach(card => {
+    if(card.style.display !== 'none') card.classList.toggle('open', allExpanded);
+  });
+  document.querySelector('.expand-all-btn').textContent = allExpanded ? '折叠全部' : '展开全部';
+}
+
+function setMastery(key, status) {
+  if(status) masteryData[key] = status;
+  else delete masteryData[key];
+  localStorage.setItem('cppMasteryData', JSON.stringify(masteryData));
+  const card = document.getElementById(`q-${key}`);
+  if(card) {
+    card.classList.remove('mastered','unmastered');
+    if(status) card.classList.add(status);
+  }
+  updateProgress();
+  updateModuleStats();
+}
+
+function updateProgress() {
+  let total = 0, mastered = 0;
+  modules.forEach(m => { total += m.questions.length; });
+  Object.values(masteryData).forEach(v => { if(v==='mastered') mastered++; });
+  const pct = total ? Math.round(mastered/total*100) : 0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = `已掌握 ${mastered} / ${total} 题 (${pct}%)`;
+}
+
+function updateModuleStats() {
+  modules.forEach(m => {
+    let mastered = 0;
+    m.questions.forEach(q => {
+      const key = hashQuestion(m.id, q);
+      if(masteryData[key] === 'mastered') mastered++;
+    });
+    const el = document.getElementById(`stats-${m.id}`);
+    if(el) el.textContent = `已掌握 ${mastered}/${m.questions.length}`;
+  });
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+  applyFilters();
+}
+
+function filterQuestions() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (!searchTerm) { applyFilters(); return; }
+  // 全局搜索：先在当前模块搜，如果没结果则遍历所有模块
+  const currentCards = document.querySelectorAll('.question-card');
+  let found = false;
+  currentCards.forEach(card => {
+    if (card.textContent.toLowerCase().includes(searchTerm)) found = true;
+  });
+  if (found) { applyFilters(); return; }
+  // 当前模块无结果，搜索其他模块
+  for (const m of modules) {
+    if (m.id === currentModule) continue;
+    const hasMatch = m.questions.some(q => {
+      const text = (q.q + q.a + (q.d||'')).toLowerCase();
+      return text.includes(searchTerm);
+    });
+    if (hasMatch) { switchModule(m.id); return; }
+  }
+  applyFilters(); // 全局无结果，显示空
+}
+
+function applyFilters() {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.question-card').forEach(card => {
+    const key = card.dataset.key;
+    const level = card.dataset.level;
+    const mastery = masteryData[key] || '';
+    const text = card.textContent.toLowerCase();
+    let show = true;
+    if(searchTerm && !text.includes(searchTerm)) show = false;
+    if(currentFilter === 'mastered' && mastery !== 'mastered') show = false;
+    if(currentFilter === 'unmastered' && mastery !== 'unmastered') show = false;
+    if(currentFilter === 'unmarked' && mastery !== '') show = false;
+    if(currentFilter === 'basic' && level !== 'basic') show = false;
+    if(currentFilter === 'intermediate' && level !== 'intermediate') show = false;
+    if(currentFilter === 'advanced' && level !== 'advanced') show = false;
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+function switchModule(id) {
+  currentModule = id;
+  localStorage.setItem('cppCurrentModule', id);
+  document.querySelectorAll('.sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.module === id));
+  renderQuestions();
+  applyFilters();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? '' : 'dark');
+  document.querySelector('.theme-toggle').textContent = isDark ? '🌙 暗色' : '☀️ 亮色';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+
+function showStats() {
+  let msg = '📊 学习统计\n\n';
+  let totalQ = 0, totalM = 0, totalU = 0;
+  modules.forEach(m => {
+    let mastered = 0, unmastered = 0;
+    m.questions.forEach(q => {
+      const s = masteryData[hashQuestion(m.id, q)];
+      if(s==='mastered') mastered++;
+      if(s==='unmastered') unmastered++;
+    });
+    totalQ += m.questions.length; totalM += mastered; totalU += unmastered;
+    msg += `${m.icon} ${m.title}: ${mastered}/${m.questions.length} 掌握, ${unmastered} 薄弱\n`;
+  });
+  msg += `\n总计: ${totalM}/${totalQ} 已掌握 (${Math.round(totalM/totalQ*100)}%), ${totalU} 需复习`;
+  alert(msg);
+}
+
+// ========== 初始化 ==========
+(function init() {
+  // 主题
+  const saved = localStorage.getItem('theme');
+  if(saved === 'dark') {
+    document.documentElement.setAttribute('data-theme','dark');
+    document.querySelector('.theme-toggle').textContent = '☀️ 亮色';
+  }
+
+  // 迁移 mastery 数据（旧索引key → 新哈希key）
+  masteryData = migrateMasteryData();
+
+  // 恢复排序模式
+  if (currentSortMode === 'ordered') {
+    sortAllModules('ordered');
+  }
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === currentSortMode));
+
+  // 验证 currentModule 是否有效
+  if (!modules.find(m => m.id === currentModule)) currentModule = modules[0].id;
+
+  renderSidebar();
+  renderQuestions();
+})();
+</script>
+</body>
+</html>
