@@ -462,13 +462,120 @@ body {
 
 .mastery-btn:hover { opacity: 0.8; }
 
+/* 汉堡菜单按钮（仅移动端显示） */
+.menu-toggle {
+  display: none;
+  padding: 8px;
+  border: none;
+  background: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* 侧边栏遮罩（仅移动端） */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 49;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; padding: 16px; }
-  .search-box { width: 160px; }
-  .question-body { padding-left: 20px; }
+  .menu-toggle { display: block; }
+
+  .top-nav {
+    padding: 0 12px;
+    height: 52px;
+    gap: 8px;
+  }
+
+  .nav-title { font-size: 14px; flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .nav-controls { gap: 6px; }
+
+  .search-box { width: 100%; max-width: 180px; }
+  .search-box input { padding: 6px 10px 6px 32px; font-size: 13px; }
+
+  .expand-all-btn, .stats-btn { padding: 6px 10px; font-size: 12px; }
+
+  .sidebar {
+    top: 52px;
+    width: 260px;
+    transform: translateX(-100%);
+    box-shadow: none;
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+  }
+  .sidebar-overlay.open { display: block; }
+
+  .main-content {
+    margin-left: 0;
+    margin-top: 52px;
+    padding: 12px;
+  }
+
+  /* 筛选区域 */
+  .filter-controls {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .filter-btn {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .sort-group {
+    width: 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+  }
+
+  /* 模块标题 */
+  .module-header {
+    top: 52px;
+    padding: 12px 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .module-title { font-size: 18px; }
+  .module-title .icon { font-size: 22px; }
+  .module-stats { font-size: 12px; }
+
+  /* 题目卡片 */
+  .question-card { margin-bottom: 10px; border-radius: 10px; }
+  .question-header { padding: 12px 14px; gap: 10px; }
+  .question-num { min-width: 28px; height: 28px; font-size: 12px; border-radius: 6px; }
+  .question-text { font-size: 14px; line-height: 1.5; }
+  .difficulty-tag { font-size: 10px; padding: 2px 8px; }
+  .question-toggle { font-size: 11px; }
+
+  .question-body { padding: 0 14px 14px 14px; }
+  .answer-text { font-size: 13px; line-height: 1.7; }
+  .detail-section { padding: 10px 12px; }
+  .detail-text { font-size: 12px; line-height: 1.8; }
+  .scenario-section { padding: 8px 12px; }
+  .scenario-text { font-size: 12px; }
+
+  /* 掌握按钮加大触摸区域 */
+  .mastery-controls { flex-wrap: wrap; }
+  .mastery-btn { padding: 8px 14px; font-size: 13px; }
+}
+
+@media (max-width: 420px) {
+  .nav-title { font-size: 13px; }
+  .search-box { max-width: 140px; }
+  .expand-all-btn { display: none; }
+  .stats-btn { padding: 6px 8px; }
 }
 
 /* 滚动条 */
@@ -542,6 +649,7 @@ body {
 
 <!-- 顶部导航 -->
 <nav class="top-nav">
+  <button class="menu-toggle" onclick="toggleSidebar()" aria-label="菜单">☰</button>
   <div class="nav-title">🚀 C++ 研发工程师核心通关宝典</div>
   <div class="nav-controls">
     <div class="search-box">
@@ -552,6 +660,9 @@ body {
     <button class="theme-toggle" onclick="toggleTheme()">🌙 暗色</button>
   </div>
 </nav>
+
+<!-- 侧边栏遮罩 -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <!-- 侧边栏 -->
 <aside class="sidebar" id="sidebar">
@@ -865,7 +976,18 @@ function switchModule(id) {
   document.querySelectorAll('.sidebar-item').forEach(i => i.classList.toggle('active', i.dataset.module === id));
   renderQuestions();
   applyFilters();
+  closeSidebar();
   window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
 function toggleTheme() {
