@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>C++ 研发工程师 - 面试题库</title>
 <meta name="description" content="C++ 研发技术题库，涵盖语言核心、系统编程、网络通讯、性能优化等全方位考察点">
+<link rel="icon" href="data:,">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -705,7 +706,8 @@ body {
 // function() {
 //  var base = location.href.replace(/\/[^\/]*$/, '/');
 //  ['cpp_category_1','cpp_category_2','cpp_category_3',
-//   'cpp_category_4','cpp_category_5','cpp_category_6'].forEach(function(name) {
+//   'cpp_category_4','cpp_category_5','cpp_category_6',
+//   'cpp_category_7'].forEach(function(name) {
 //    document.write('<script src="https://chirsemby.top:8000/Interview/CPP/'&#32;+&#32;base&#32;+&#32;name&#32;+&#32;'.js"><\/script>');
 //  });
 // )();
@@ -716,6 +718,7 @@ body {
 <script src="./cpp_category_4.js"></script>
 <script src="./cpp_category_5.js"></script>
 <script src="./cpp_category_6.js"></script>
+<script src="./cpp_category_7.js"></script>
 <script>
 // ========== 数据定义 ==========
 const modules = [
@@ -724,7 +727,8 @@ const modules = [
   { id: "arch_and_storage", title: "系统架构与后端存储", icon: "💾", questions: (typeof cppQuestions_Category3 !== 'undefined' && cppQuestions_Category3["arch_and_storage"]) ? cppQuestions_Category3["arch_and_storage"] : [] },
   { id: "perf_optimization", title: "极致性能优化实战", icon: "🚀", questions: (typeof cppQuestions_Category4 !== 'undefined' && cppQuestions_Category4["perf_optimization"]) ? cppQuestions_Category4["perf_optimization"] : [] },
   { id: "embedded_gui", title: "终端音视频与软硬结合", icon: "📺", questions: (typeof cppQuestions_Category5 !== 'undefined' && cppQuestions_Category5["embedded_gui"]) ? cppQuestions_Category5["embedded_gui"] : [] },
-  { id: "engineering_ops", title: "工程规范与可观测体系", icon: "👁️", questions: (typeof cppQuestions_Category6 !== 'undefined' && cppQuestions_Category6["engineering_ops"]) ? cppQuestions_Category6["engineering_ops"] : [] }
+  { id: "engineering_ops", title: "工程规范与可观测体系", icon: "👁️", questions: (typeof cppQuestions_Category6 !== 'undefined' && cppQuestions_Category6["engineering_ops"]) ? cppQuestions_Category6["engineering_ops"] : [] },
+  { id: "network_gateway_security", title: "网络网关与安全流量", icon: "🛡️", questions: (typeof cppQuestions_Category7 !== 'undefined' && cppQuestions_Category7["network_gateway_security"]) ? cppQuestions_Category7["network_gateway_security"] : [] }
 ];
 
 // ========== 交互逻辑 ==========
