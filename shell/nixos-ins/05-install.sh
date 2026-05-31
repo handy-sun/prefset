@@ -14,7 +14,7 @@ echo ">>> Installing system..."
 nixos-install
 
 echo ">>> Creating user..."
-USER_NAME="${1:-handy}"
+USER_NAME="${1:-qi}"
 
 nixos-enter -c "useradd ${USER_NAME} -m -G wheel"
 echo ">>> Set user password:"
