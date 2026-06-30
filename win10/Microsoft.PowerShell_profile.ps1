@@ -1,7 +1,13 @@
 ## Location: $PROFILE ($HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1)
+## To apply profile's change, use command:. $PROFILE
+
+# Fix external command (git etc.) UTF-8 output garbled in PowerShell pipeline
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+[Console]::InputEncoding = [Text.Encoding]::UTF8
 
 Import-Module PSReadLine
-Import-Module posh-git
+## Donnot need to import it
+# Import-Module posh-git
 
 ## use theme powerlevel10k_lean, donnot use command: Import-Module oh-my-posh
 oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/powerlevel10k_lean.omp.json" | Invoke-Expression
@@ -29,7 +35,7 @@ Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
 ## ------------------------------- Set Hot-keys END -------------------------------
 
 # powershell start path
-Set-Location "$HOME"
+# Set-Location "$HOME"
 
 ## ------------------------------- append into $env:path -------------------------------
 
@@ -62,15 +68,17 @@ function JudgeAndAddToPath {
     # }
 }
 
-JudgeAndAddToPath -DirectoryPath "C:\Program1\helix-dev"
+# JudgeAndAddToPath -DirectoryPath "C:\Program1\helix-dev"
+
 ## ---------------
-$baseDirectory = "$HOME\.dotnet\tools"
+# $baseDirectory = "$HOME\.dotnet\tools"
 
-$subdirectories = Get-ChildItem -Path $baseDirectory -Directory
-foreach ($subdir in $subdirectories) {
-    JudgeAndAddToPath -DirectoryPath $subdir
-}
+# $subdirectories = Get-ChildItem -Path $baseDirectory -Directory
+# foreach ($subdir in $subdirectories) {
+#     JudgeAndAddToPath -DirectoryPath $subdir
+# }
 
+Invoke-Expression (& { (zoxide init powershell | Out-String) })
 ## Python 直接执行
 # $env:PATHEXT += ";.py"
 
@@ -304,3 +312,21 @@ function rrm {
 function ll {
     & eza --group-directories-first -A -blg --git @args
 }
+
+function sha256sum {
+    Get-FileHash @args -Algorithm SHA256
+}
+
+function md5sum {
+    Get-FileHash @args -Algorithm MD5
+}
+
+function genWinTunSb {
+    node D:\handy\sbtpl\node\base.js -s "http://handy:3001/c53248f264d9997/download/collection/main?target=URI" -p "@🌐Proxy@⚡UrlTest-~^(?!.*(流量|到期|过滤|官网|Rfchost(.+)Anytls|kooya|\]日本)).*$@💬AI-~^(?!.*(流量|到期|过滤|官网)).*$@🚀LowLatency-~^(?!.*(流量|到期|过滤|官网)).*$" --tun --icmp --windows -o ~\.config\sbroot\config.json
+}
+
+function genWinSb {
+    node D:\handy\sbtpl\node\base.js -s "http://handy:3001/c53248f264d9997/download/collection/main?target=URI" -p "@🌐Proxy@⚡UrlTest-~^(?!.*(流量|到期|过滤|官网|Rfchost(.+)Anytls|kooya|\]日本)).*$@💬AI-~^(?!.*(流量|到期|过滤|官网)).*$@🚀LowLatency-~^(?!.*(流量|到期|过滤|官网)).*$" --icmp --windows -o ~\.config\sbroot\config.json
+}
+
+# try { $null = gcm pshazz -ea stop; pshazz init 'default' } catch { }
