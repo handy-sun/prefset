@@ -68,7 +68,7 @@ function JudgeAndAddToPath {
     # }
 }
 
-# JudgeAndAddToPath -DirectoryPath "C:\Program1\helix-dev"
+JudgeAndAddToPath -DirectoryPath "$HOME\.local\bin"
 
 ## ---------------
 # $baseDirectory = "$HOME\.dotnet\tools"
@@ -167,32 +167,27 @@ function gbc {
 }
 
 function Get-GitRootDir {
-    $currentDir = Get-Location
-
-    while ($null -ne $currentDir) {
-        if (Test-Path (Join-Path $currentDir.Path '.git')) {
-            $currentDir.Path
-            return
-        }
-
-        $parent = Split-Path -Parent $currentDir.Path
-        if (-not $parent -or $parent -eq $currentDir.Path) {
-            break
-        }
-
-        $currentDir = Get-Item $parent
+    $rootDir = & git rev-parse --show-toplevel 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error 'fatal: not a git repository (or any of the parent directories): .git'
+        return
     }
 
-    Write-Error 'fatal: not a git repository (or any of the parent directories): .git'
+    return $rootDir
 }
 
 function gaa {
+    if ($args.Count -gt 0) {
+        Write-Error 'gaa does not accept any arguments.'
+        return
+    }
+
     $rootDir = Get-GitRootDir
     if (-not $rootDir) {
         return
     }
 
-    & git -C $rootDir add . -v @args
+    & git -C $rootDir add . -v
 }
 
 function groa {
