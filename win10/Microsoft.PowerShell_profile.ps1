@@ -36,6 +36,14 @@ Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
 
 # powershell start path
 # Set-Location "$HOME"
+Set-PSReadLineOption -AddToHistoryHandler {
+    param($line)
+    # 如果命令以空格开头，则不记录到历史
+    if ($line.StartsWith(' ')) {
+        return $false
+    }
+    return $true
+}
 
 ## ------------------------------- append into $env:path -------------------------------
 
