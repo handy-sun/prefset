@@ -1,0 +1,34 @@
+/.gitattributes text eol=lf
+# 所有文本文件：仓库存 LF，工作区保持原生（Windows 为 CRLF）
+* text=auto
+
+*.pro   text eol=lf
+*.pri   text eol=lf
+
+*.sh            text eol=lf
+*.nix           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.bashrc        text eol=lf
+*.service       text eol=lf
+Justfile        text eol=lf
+.xprofile       text eol=lf
+.pam_environment text eol=lf
+
+*.sgc           text eol=crlf
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+*.vbs           text eol=crlf
+*.reg           -text
+
+*.ps1           text eol=lf
+*.ini           text eol=lf
+*.conf          text eol=lf
+*.md            text eol=lf
+
+# Preserve SecureCRT UTF-8 BOM exports byte-for-byte while retaining text diffs.
+/CRT-ColorTheme/Keywords/*.ini -text !eol diff
+
+*.js            text eol=lf
+*.php           text eol=lf
+*.json          text eol=lf
