@@ -183,7 +183,7 @@ prefset/
 | `windowsterminal.setting.json` | Windows Terminal 设置：配色方案、字体、快捷键、多 profile 配置 |
 | `DualSysTimeSync.reg` | 注册表补丁：修复 Windows/Linux 双系统时间同步问题 |
 | `chocolatey.config` | Chocolatey 包管理器完整配置 |
-| `wsl-ubuntu2004.sh` | WSL Ubuntu 20.04 环境初始化脚本 |
+| `wsl2/ubt22-setup.sh` | WSL2 Ubuntu 22.04 环境初始化脚本 |
 | `pac/` | 代理自动配置 (PAC) 文件 |
 | `vs/` | Visual Studio 字体配色设置 (`my_font_color.vssettings`) |
 

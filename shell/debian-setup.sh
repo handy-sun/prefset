@@ -1,4 +1,6 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -euo pipefail
+
 _pkginsy() {
     sudo apt install -y "$@"
 }
