@@ -216,25 +216,6 @@ function grga {
     & git -C $rootDir restore --staged . @args
 }
 
-# function rg { & rg @args }
-# function rga { & rg -i --no-ignore @args }
-
-# function fd { & fd @args }
-# function fdf {
-#     & fd -t f -H -I --exclude .git --exclude .svn --exclude .vscode --exclude .vs --exclude .vscode-server --exclude .idea --exclude .github --exclude node_modules --exclude target --exclude build --exclude dist @args
-# }
-
-# function fdw {
-#     if ($args.Length -lt 1 -or -not $args[0]) {
-#         Write-Error "Usage: fdw <name> [path]"
-#         return
-#     }
-
-#     $name = $args[0]
-#     $path = if ($args.Length -gt 1 -and $args[1]) { $args[1] } else { '.' }
-#     & fd -H -I ("^{0}$" -f $name) $path
-# }
-
 function prenv {
     if ($args.Length -eq 0) {
         Write-Output "Show All EnvironmentVariable:"
@@ -271,10 +252,6 @@ function Update-SessionPath {
         $env:PATH = $machinePath + ';' + $userPath
     }
 }
-
-# function epol {
-#     Get-ExecutionPolicy @args
-# }
 
 function getproxy {
     Get-itemPropertyValue -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings" -Name ProxyEnable,ProxyServer
@@ -324,12 +301,14 @@ function md5sum {
     Get-FileHash @args -Algorithm MD5
 }
 
+$sbSubs = "http://fngo.local:3001/c53248f264d9997/download/collection/main?target=URI"
+$sbPolicy = "@🌐Proxy@⚡UrlTest-~^(?!.*(kooya)).*$@💬AI$@🚀LowLatency"
+
 function genWinTunSb {
-    node D:\handy\sbtpl\node\base.js -s "http://handy:3001/c53248f264d9997/download/collection/main?target=URI" -p "@🌐Proxy@⚡UrlTest-~^(?!.*(流量|到期|过滤|官网|Rfchost(.+)Anytls|kooya|\]日本)).*$@💬AI-~^(?!.*(流量|到期|过滤|官网)).*$@🚀LowLatency-~^(?!.*(流量|到期|过滤|官网)).*$" --tun --icmp --windows -o ~\.config\sbroot\config.json
+    node D:\handy\sbtpl\node\base.js -s $sbSubs -p $sbPolicy --tun --icmp --windows -o ~\.config\sbroot\config.json
 }
 
 function genWinSb {
-    node D:\handy\sbtpl\node\base.js -s "http://handy:3001/c53248f264d9997/download/collection/main?target=URI" -p "@🌐Proxy@⚡UrlTest-~^(?!.*(流量|到期|过滤|官网|Rfchost(.+)Anytls|kooya|\]日本)).*$@💬AI-~^(?!.*(流量|到期|过滤|官网)).*$@🚀LowLatency-~^(?!.*(流量|到期|过滤|官网)).*$" --icmp --windows -o ~\.config\sbroot\config.json
+    node D:\handy\sbtpl\node\base.js -s $sbSubs -p $sbPolicy --icmp --windows -o ~\.config\sbroot\config.json
 }
-
 # try { $null = gcm pshazz -ea stop; pshazz init 'default' } catch { }
