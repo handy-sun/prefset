@@ -201,6 +201,7 @@ prefset/
 |---|---|
 | `Microsoft.PowerShell_profile.ps1` | PowerShell 配置：oh-my-posh、PSReadLine、zoxide、Git 快捷函数、PATH 与系统代理工具 |
 | `init.ps1` | 创建 Profile，并安装 PSReadLine、posh-git 和 oh-my-posh 的 PowerShell 初始化脚本 |
+| `win10\scoop-winget.md` | scoop 和 winget 这两个包管理器的包列表归档以及一些命令 |
 | `lnsf-profile.ps1` | 将当前用户 PowerShell Profile 创建为仓库配置的符号链接 |
 | `DualSysTimeSync.reg` | 让 Windows 使用 UTC 硬件时钟，修复 Windows/Linux 双系统时间偏移 |
 | `chocolatey.config` | Chocolatey 软件源、功能开关和超时等完整导出配置 |
