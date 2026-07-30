@@ -64,4 +64,5 @@ KDE.Filelight
 windhawk
 beszel-agent
 rmux
+btop4win
 ```

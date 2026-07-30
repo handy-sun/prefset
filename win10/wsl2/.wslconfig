@@ -1,19 +1,23 @@
 [wsl2]
 # 限制容器内存上限, 根据各自机器及需求设置
-memory=16GB
+memory=8GB
 # 配置网络模式为镜像模式，网络将于宿主机相同
 networkingMode=mirrored
 # 更改将 DNS 请求从 WSL 代理到 Windows 的方式
 dnsTunneling=true
 # 如果设置为 true，则 Windows 防火墙规则以及特定于 Hyper-V 流量的规则可以筛选 WSL 网络流量
 firewall=true
+# 关闭图形化，规避抢夺程序焦点的问题
+guiApplications=false
 # 强制 WSL 使用 Windows 的 HTTP 代理信息,是否打开看个人的需要（默认值为false）
-autoProxy=true
-#kernel=C:\\Intel\\ebpf-bzImage
+autoProxy=false
+
+#kernel=C:\\Intel\\kernel.img
+
 ## pre-release
-virtio=true
-virtiofs=true
-hostFileSystemAccess=true
+# virtio=true
+# virtiofs=true
+# hostFileSystemAccess=true
 
 [experimental]
 # 检测空闲 CPU 使用率后，自动释放缓存的内存。 设置为 gradual 以慢速释放，设置为 dropcache 以立即释放缓存的内存。（默认值为dropCache）
