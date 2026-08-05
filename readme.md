@@ -131,6 +131,7 @@ prefset/
 | `comparenum.sh` | 交互读取两个整数并比较大小 |
 | `curltest.sh` | 用限定 TLS 的 cURL 请求测试多个常用站点连通性 |
 | `debian-setup.sh` | 配置 Debian Testing 软件源，升级系统并安装开发工具和现代 CLI |
+| `diagnet.sh` | 只读检查默认路由、双网卡同网段及逐接口网关与 HTTPS 连通性 |
 | `del0sizefile.sh` | 删除当前目录中的零字节普通文件 |
 | `delbuild.sh` | 从指定根目录递归删除 `build` 目录 |
 | `gen-nix-sb.sh` | 生成 sing-box 服务端/客户端配置、随机凭据和分享链接，并可借助 Nix 自动加载依赖 |
