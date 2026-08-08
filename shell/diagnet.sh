@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-## diagnose-network-path.sh — Compare default-route and interface-bound network paths
-## Usage: ./diagnose-network-path.sh [--interface NAME]... [--gateway ADDRESS] [--timeout SECONDS]
+## diagnet.sh — Compare default-route and interface-bound network paths
+## Usage: ./diagnet.sh [--interface NAME]... [--gateway ADDRESS] [--timeout SECONDS] [--verbose]
 set -euo pipefail
 
 TIMEOUT=4
 GATEWAY_OVERRIDE=""
+VERBOSE=false
+COLOR_ENABLED=false
 INTERFACES=()
 DEFAULT_ROUTES=()
-SUMMARY_MESSAGES=()
 declare -A HTTPS_RESULTS=()
 declare -A INTERFACE_GATEWAYS=()
 declare -A INTERFACE_NETWORKS=()
@@ -17,17 +18,57 @@ print_help() {
 Read-only network path diagnostics
 
 Usage:
-  diagnose-network-path.sh [OPTIONS]
+  diagnet.sh [OPTIONS]
 
 Options:
   --interface NAME     Test only this interface. May be repeated.
   --gateway ADDRESS    Override the gateway for one selected interface.
   --timeout SECONDS    Per-probe timeout in seconds. Default: 4.
+  --verbose            Show raw routes, adapter details, and probe timings.
   -h, --help           Show this help.
 
 The script does not disconnect interfaces, change routes, or restart services.
 Network failures are reported as findings and do not change the exit status.
 EOF
+}
+
+init_output() {
+    if [[ -t 1 && -z "${NO_COLOR+x}" ]]; then
+        COLOR_ENABLED=true
+    else
+        COLOR_ENABLED=false
+    fi
+}
+
+color_text() {
+    local color_code="$1"
+    shift
+
+    if [[ "${COLOR_ENABLED}" == true ]]; then
+        printf '\033[%sm%s\033[0m' "${color_code}" "$*"
+    else
+        printf '%s' "$*"
+    fi
+}
+
+status_label() {
+    case "$1" in
+        PASS) color_text 32 PASS ;;
+        FAIL) color_text 31 FAIL ;;
+        WARN) color_text 33 WARN ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+important_value() {
+    color_text 34 "$*"
+}
+
+verbose_printf() {
+    [[ "${VERBOSE}" == true ]] || return 0
+    # The callers provide constant format strings; this is a printf-compatible wrapper.
+    # shellcheck disable=SC2059
+    printf "$@"
 }
 
 route_field() {
@@ -138,6 +179,10 @@ parse_args() {
                 TIMEOUT="$2"
                 shift 2
                 ;;
+            --verbose)
+                VERBOSE=true
+                shift
+                ;;
             -h | --help)
                 print_help
                 exit 0
@@ -170,7 +215,7 @@ have_command() {
 }
 
 print_section() {
-    printf '\n=== %s ===\n' "$1"
+    printf '\n%s\n' "$(color_text 36 "── $1 ──")"
 }
 
 record_result() {
@@ -178,8 +223,7 @@ record_result() {
     shift
     local message="$*"
 
-    printf '%s: %s\n' "${level}" "${message}"
-    SUMMARY_MESSAGES+=("${level}: ${message}")
+    printf '%s: %s\n' "$(status_label "${level}")" "${message}"
 }
 
 collect_default_routes() {
@@ -255,23 +299,28 @@ print_default_routes() {
     local route
     local winner
     local winner_interface
+    local winner_gateway
     local winner_metric
 
-    print_section "Default routes"
+    print_section "Routing"
     if ((${#DEFAULT_ROUTES[@]} == 0)); then
-        record_result FAIL "No IPv4 default route is installed. Internet destinations have no general path."
+        record_result FAIL "No IPv4 default route."
         return 0
     fi
 
     for route in "${DEFAULT_ROUTES[@]}"; do
-        printf 'Route: %s\n' "${route}"
+        verbose_printf 'Raw route: %s\n' "${route}"
     done
 
     winner="$(find_winning_route)"
     winner_interface="$(route_device "${winner}")"
+    winner_gateway="$(route_gateway "${winner}")"
     winner_metric="$(route_metric "${winner}")"
-    printf 'Default route winner: %s (metric %s)\n' "${winner_interface}" "${winner_metric}"
-    printf 'Meaning: traffic without a more specific route normally uses %s because it has the lowest metric.\n' "${winner_interface}"
+    printf 'Default: %s via %s (metric %s)\n' \
+        "$(important_value "${winner_interface}")" \
+        "$(important_value "${winner_gateway:-direct}")" \
+        "$(important_value "${winner_metric}")"
+    verbose_printf 'Selection: lowest default-route metric wins.\n'
 }
 
 interface_ipv4_cidr() {
@@ -338,18 +387,15 @@ print_interface_details() {
     [[ -r "/sys/class/net/${interface_name}/carrier" ]] && carrier_raw="$(<"/sys/class/net/${interface_name}/carrier")"
     [[ -r "/sys/class/net/${interface_name}/speed" ]] && speed_raw="$(<"/sys/class/net/${interface_name}/speed")"
 
-    printf 'Interface: %s\n' "${interface_name}"
-    printf '  IPv4 address: %s\n' "${cidr:-none}"
-    printf '  Carrier: %s\n' "$(carrier_label "${carrier_raw}")"
-    printf '  Link speed: %s\n' "$(speed_label "${speed_raw}")"
-    printf '  Gateway: %s\n' "${gateway:-none}"
-    if [[ -n "${route}" ]]; then
-        printf '  Default-route metric: %s\n' "$(route_metric "${route}")"
-    else
-        printf '  Default-route metric: none\n'
-    fi
+    printf '%s  IPv4 %s | gateway %s | carrier %s | speed %s | metric %s\n' \
+        "$(important_value "${interface_name}")" \
+        "$(important_value "${cidr:-none}")" \
+        "$(important_value "${gateway:-none}")" \
+        "$(carrier_label "${carrier_raw}")" \
+        "$(speed_label "${speed_raw}")" \
+        "$([[ -n "${route}" ]] && route_metric "${route}" || printf 'none')"
 
-    if have_command nmcli; then
+    if [[ "${VERBOSE}" == true ]] && have_command nmcli; then
         local nm_state
         local nm_connection
         nm_state="$(nmcli -g GENERAL.STATE device show "${interface_name}" 2>/dev/null || true)"
@@ -358,7 +404,7 @@ print_interface_details() {
         printf '  NetworkManager connection: %s\n' "${nm_connection:---}"
     fi
 
-    if have_command ethtool; then
+    if [[ "${VERBOSE}" == true ]] && have_command ethtool; then
         local detected
         detected="$(ethtool "${interface_name}" 2>/dev/null | awk -F': ' '/Link detected:/ {print $2; exit}')"
         [[ -z "${detected}" ]] || printf '  Link detected by driver: %s\n' "${detected}"
@@ -371,11 +417,11 @@ probe_ping() {
     local label="$3"
 
     if ping -4 -I "${interface_name}" -c 2 -W "${TIMEOUT}" "${target}" >/dev/null 2>&1; then
-        record_result PASS "${interface_name} can reach ${label} ${target}."
+        record_result PASS "$(important_value "${interface_name}") ${label} ping (${target})."
         return 0
     fi
 
-    record_result WARN "${interface_name} received no ping reply from ${label} ${target}. ICMP may be blocked, so HTTPS is tested next."
+    record_result WARN "$(important_value "${interface_name}") ${label} ping: no reply (ICMP may be blocked)."
     return 1
 }
 
@@ -397,13 +443,14 @@ probe_https() {
         --write-out 'HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s' \
         'https://dns.alidns.com/dns-query' 2>&1)"; then
         HTTPS_RESULTS["${interface_name}"]=pass
-        record_result PASS "${interface_name} completed an interface-bound HTTPS handshake (${output})."
+        record_result PASS "$(important_value "${interface_name}") HTTPS handshake."
+        verbose_printf '  HTTPS detail: %s\n' "${output}"
         return 0
     fi
 
     HTTPS_RESULTS["${interface_name}"]=fail
     output="${output//$'\n'/ }"
-    record_result FAIL "${interface_name} could not complete an interface-bound HTTPS handshake (${output})."
+    record_result FAIL "$(important_value "${interface_name}") HTTPS handshake: ${output}"
     return 1
 }
 
@@ -411,7 +458,7 @@ probe_unbound_baseline() {
     local output
     local max_time=$((TIMEOUT + 3))
 
-    print_section "Unbound baseline"
+    print_section "Connectivity"
     if output="$(curl \
         --noproxy '*' \
         --ipv4 \
@@ -423,21 +470,26 @@ probe_unbound_baseline() {
         --max-time "${max_time}" \
         --write-out 'HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s' \
         'https://dns.alidns.com/dns-query' 2>&1)"; then
-        record_result PASS "An unbound HTTPS request succeeded (${output})."
+        record_result PASS "Default-path HTTPS handshake."
+        verbose_printf '  HTTPS detail: %s\n' "${output}"
     else
         output="${output//$'\n'/ }"
-        record_result FAIL "The unbound HTTPS baseline failed (${output})."
+        record_result FAIL "Default-path HTTPS handshake: ${output}"
     fi
 }
 
 check_shared_networks() {
     local left right
 
-    print_section "Multi-interface checks"
     if ((${#INTERFACES[@]} < 2)); then
-        printf 'Only one interface is being tested. No overlap comparison is needed.\n'
+        if [[ "${VERBOSE}" == true ]]; then
+            print_section "Interface overlap"
+            printf 'Only one interface; overlap check skipped.\n'
+        fi
         return 0
     fi
+
+    print_section "Interface overlap"
 
     local found_overlap=false
     for ((left = 0; left < ${#INTERFACES[@]}; left++)); do
@@ -450,18 +502,18 @@ check_shared_networks() {
             local right_network="${INTERFACE_NETWORKS[${right_name}]:-}"
 
             if [[ -n "${left_gateway}" && "${left_gateway}" == "${right_gateway}" ]]; then
-                record_result WARN "${left_name} and ${right_name} use the same gateway ${left_gateway}. The lower default-route metric normally wins."
+                record_result WARN "$(important_value "${left_name}") and $(important_value "${right_name}") share gateway ${left_gateway}; the lower route metric wins."
                 found_overlap=true
             fi
             if [[ -n "${left_network}" && "${left_network}" == "${right_network}" ]]; then
-                record_result WARN "${left_name} and ${right_name} are both on ${left_network}. Binding an application to the wrong interface can expose a broken path."
+                record_result WARN "$(important_value "${left_name}") and $(important_value "${right_name}") share ${left_network}; bound traffic may use the wrong path."
                 found_overlap=true
             fi
         done
     done
 
     if [[ "${found_overlap}" == false ]]; then
-        record_result PASS "No duplicate gateway or connected IPv4 network was found among the tested interfaces."
+        record_result PASS "No shared gateway or IPv4 network."
     fi
 }
 
@@ -470,13 +522,16 @@ inspect_sing_box() {
     local auto_detect=""
     local socket_interfaces=""
 
-    print_section "sing-box integration"
     if ! have_command systemctl || ! systemctl is-active --quiet sing-box.service 2>/dev/null; then
-        printf 'sing-box is not active, so there is no automatic interface selection to inspect.\n'
+        if [[ "${VERBOSE}" == true ]]; then
+            print_section "sing-box"
+            printf 'Service is not active; integration check skipped.\n'
+        fi
         return 0
     fi
 
-    printf 'sing-box service: active\n'
+    print_section "sing-box"
+    printf 'Service: %s\n' "$(important_value active)"
     if have_command jq; then
         if [[ -r "${config_path}" ]]; then
             auto_detect="$(jq -r '.route.auto_detect_interface // false' "${config_path}" 2>/dev/null || true)"
@@ -486,9 +541,9 @@ inspect_sing_box() {
     fi
 
     if [[ -n "${auto_detect}" ]]; then
-        printf 'sing-box auto-detects the default interface: %s\n' "${auto_detect}"
+        printf 'Auto-detect default interface: %s\n' "$(important_value "${auto_detect}")"
     else
-        printf 'The generated sing-box route setting could not be read without prompting for privileges.\n'
+        record_result WARN "Route auto-detect setting is unavailable without privileges."
     fi
 
     if have_command ss; then
@@ -498,33 +553,33 @@ inspect_sing_box() {
                 | sort -u \
                 | paste -sd, -)"
         fi
-        [[ -z "${socket_interfaces}" ]] || printf 'Interfaces on pending sing-box TCP sockets: %s\n' "${socket_interfaces}"
+        [[ -z "${socket_interfaces}" ]] || printf 'Pending TCP interface: %s\n' "$(important_value "${socket_interfaces}")"
     fi
 }
 
 print_summary() {
-    local message
     local winner
     local winner_interface=""
     local alternative
     local interface_name
     local tested_count=0
     local passed_count=0
+    local failed_count=0
 
-    print_section "Plain-English summary"
-    for message in "${SUMMARY_MESSAGES[@]}"; do
-        printf '%s\n' "${message}"
-    done
+    print_section "Diagnosis"
 
     winner="$(find_winning_route || true)"
     [[ -z "${winner}" ]] || winner_interface="$(route_device "${winner}")"
     if [[ -n "${winner_interface}" && "${HTTPS_RESULTS[${winner_interface}]:-}" == fail ]]; then
         for alternative in "${INTERFACES[@]}"; do
             if [[ "${HTTPS_RESULTS[${alternative}]:-}" == pass ]]; then
-                printf '\nDiagnosis: %s wins the default route but fails when traffic is bound to it. %s has a working bound path.\n' \
-                    "${winner_interface}" "${alternative}"
-                printf 'Likely impact: software that auto-detects and binds the default interface can lose connectivity even while other applications still work.\n'
-                printf 'Suggested next check: inspect the cable, switch port, VLAN, DHCP lease, or gateway policy for %s.\n' "${winner_interface}"
+                printf '%s: Default route %s fails; %s works.\n' \
+                    "$(status_label FAIL)" \
+                    "$(important_value "${winner_interface}")" \
+                    "$(important_value "${alternative}")"
+                printf 'Next: check cable, switch port, VLAN, DHCP, or gateway policy for %s.\n' \
+                    "$(important_value "${winner_interface}")"
+                verbose_printf 'Impact: software bound to the auto-detected default interface can lose connectivity.\n'
                 return 0
             fi
         done
@@ -536,27 +591,35 @@ print_summary() {
         fi
         if [[ "${HTTPS_RESULTS[${interface_name}]:-}" == pass ]]; then
             ((passed_count += 1))
+        elif [[ "${HTTPS_RESULTS[${interface_name}]:-}" == fail ]]; then
+            ((failed_count += 1))
         fi
     done
     if ((tested_count > 0 && tested_count == passed_count)); then
-        printf '\nDiagnosis: All tested interfaces completed the bound HTTPS check. The earlier path failure is not currently reproduced.\n'
-        printf 'The route warnings still matter: software using automatic interface selection will prefer the lowest metric.\n'
+        printf '%s: All %s tested interface path(s) work.\n' \
+            "$(status_label PASS)" "${tested_count}"
+        verbose_printf 'Automatic interface selection still follows the lowest route metric.\n'
         return 0
     fi
 
-    printf '\nDiagnosis: review the FAIL and WARN lines above; no network settings were changed.\n'
+    if ((failed_count > 0)); then
+        printf '%s: One or more interface paths failed; review the lines above.\n' "$(status_label FAIL)"
+    else
+        printf '%s: Review the WARN lines above.\n' "$(status_label WARN)"
+    fi
 }
 
 main() {
     local interface_name
     local gateway
 
+    init_output
     parse_args "$@"
     require_commands
     collect_default_routes
     discover_interfaces
 
-    printf 'Network path diagnostics started. No settings will be changed.\n'
+    verbose_printf 'Network diagnostics started (read-only).\n'
     print_default_routes
     probe_unbound_baseline
 
@@ -567,7 +630,7 @@ main() {
         if [[ -n "${gateway}" ]]; then
             probe_ping "${interface_name}" "${gateway}" gateway || true
         else
-            record_result WARN "${interface_name} has no discovered gateway, so the gateway ping was skipped."
+            record_result WARN "$(important_value "${interface_name}") has no gateway; gateway ping skipped."
         fi
         probe_ping "${interface_name}" 223.5.5.5 "public IP" || true
         probe_https "${interface_name}" || true
@@ -577,7 +640,7 @@ main() {
     inspect_sing_box
     print_summary
 
-    printf '\nNetwork path diagnostics completed.\n'
+    verbose_printf '\nNetwork diagnostics completed.\n'
 }
 
 if [[ "${NETWORK_DIAG_SOURCE_ONLY:-0}" != 1 ]]; then
