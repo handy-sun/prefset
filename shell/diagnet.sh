@@ -9,6 +9,7 @@ VERBOSE=false
 COLOR_ENABLED=false
 INTERFACES=()
 DEFAULT_ROUTES=()
+TEST_SITES=(baidu.com archlinux.org linux.do google.com)
 declare -A HTTPS_RESULTS=()
 declare -A INTERFACE_GATEWAYS=()
 declare -A INTERFACE_NETWORKS=()
@@ -200,7 +201,7 @@ require_commands() {
     local command_name
     local missing=()
 
-    for command_name in ip ping curl awk; do
+    for command_name in ip getent curl pgrep awk; do
         command -v "${command_name}" >/dev/null 2>&1 || missing+=("${command_name}")
     done
 
@@ -411,22 +412,26 @@ print_interface_details() {
     fi
 }
 
-probe_ping() {
-    local interface_name="$1"
-    local target="$2"
-    local label="$3"
+probe_dns() {
+    local target="$1"
+    local output
+    local addresses
 
-    if ping -4 -I "${interface_name}" -c 2 -W "${TIMEOUT}" "${target}" >/dev/null 2>&1; then
-        record_result PASS "$(important_value "${interface_name}") ${label} ping (${target})."
+    if output="$(getent ahostsv4 "${target}" 2>&1)"; then
+        addresses="$(awk '{print $1}' <<<"${output}" | sort -u | paste -sd, -)"
+        record_result PASS "DNS ${target}: ${addresses}."
+        verbose_printf '  DNS detail:\n%s\n' "${output}"
         return 0
     fi
 
-    record_result WARN "$(important_value "${interface_name}") ${label} ping: no reply (ICMP may be blocked)."
+    output="${output//$'\n'/ }"
+    record_result FAIL "DNS ${target}: ${output:-no IPv4 address returned}."
     return 1
 }
 
 probe_https() {
     local interface_name="$1"
+    local target="$2"
     local output
     local max_time=$((TIMEOUT + 3))
 
@@ -437,45 +442,22 @@ probe_https() {
         --silent \
         --show-error \
         --output /dev/null \
-        --resolve 'dns.alidns.com:443:223.5.5.5' \
         --connect-timeout "${TIMEOUT}" \
         --max-time "${max_time}" \
         --write-out 'HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s' \
-        'https://dns.alidns.com/dns-query' 2>&1)"; then
-        HTTPS_RESULTS["${interface_name}"]=pass
-        record_result PASS "$(important_value "${interface_name}") HTTPS handshake."
+        "https://${target}/" 2>&1)"; then
+        if [[ "${HTTPS_RESULTS[${interface_name}]:-}" != fail ]]; then
+            HTTPS_RESULTS["${interface_name}"]=pass
+        fi
+        record_result PASS "$(important_value "${interface_name}") HTTPS ${target}: ${output}."
         verbose_printf '  HTTPS detail: %s\n' "${output}"
         return 0
     fi
 
     HTTPS_RESULTS["${interface_name}"]=fail
     output="${output//$'\n'/ }"
-    record_result FAIL "$(important_value "${interface_name}") HTTPS handshake: ${output}"
+    record_result FAIL "$(important_value "${interface_name}") HTTPS ${target}: ${output}"
     return 1
-}
-
-probe_unbound_baseline() {
-    local output
-    local max_time=$((TIMEOUT + 3))
-
-    print_section "Connectivity"
-    if output="$(curl \
-        --noproxy '*' \
-        --ipv4 \
-        --silent \
-        --show-error \
-        --output /dev/null \
-        --resolve 'dns.alidns.com:443:223.5.5.5' \
-        --connect-timeout "${TIMEOUT}" \
-        --max-time "${max_time}" \
-        --write-out 'HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s' \
-        'https://dns.alidns.com/dns-query' 2>&1)"; then
-        record_result PASS "Default-path HTTPS handshake."
-        verbose_printf '  HTTPS detail: %s\n' "${output}"
-    else
-        output="${output//$'\n'/ }"
-        record_result FAIL "Default-path HTTPS handshake: ${output}"
-    fi
 }
 
 check_shared_networks() {
@@ -518,42 +500,67 @@ check_shared_networks() {
 }
 
 inspect_sing_box() {
+    local unit_name="sing-box.service"
     local config_path="/run/sing-box/config.json"
-    local auto_detect=""
-    local socket_interfaces=""
+    local config_summary=""
+    local jq_filter
+    local kind field1 field2 field3 field4
+    local inbound_count=0
 
-    if ! have_command systemctl || ! systemctl is-active --quiet sing-box.service 2>/dev/null; then
-        if [[ "${VERBOSE}" == true ]]; then
-            print_section "sing-box"
-            printf 'Service is not active; integration check skipped.\n'
-        fi
+    if ! pgrep -x sing-box >/dev/null 2>&1; then
         return 0
     fi
 
     print_section "sing-box"
-    printf 'Service: %s\n' "$(important_value active)"
-    if have_command jq; then
-        if [[ -r "${config_path}" ]]; then
-            auto_detect="$(jq -r '.route.auto_detect_interface // false' "${config_path}" 2>/dev/null || true)"
-        elif have_command sudo && sudo -n true 2>/dev/null; then
-            auto_detect="$(sudo -n jq -r '.route.auto_detect_interface // false' "${config_path}" 2>/dev/null || true)"
-        fi
-    fi
-
-    if [[ -n "${auto_detect}" ]]; then
-        printf 'Auto-detect default interface: %s\n' "$(important_value "${auto_detect}")"
+    if have_command systemctl; then
+        printf 'Service status:\n'
+        systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 || true
     else
-        record_result WARN "Route auto-detect setting is unavailable without privileges."
+        printf 'Service status: unavailable (systemctl is not installed).\n'
     fi
 
-    if have_command ss; then
-        if have_command sudo && sudo -n true 2>/dev/null; then
-            socket_interfaces="$(sudo -n ss -Htnpe state syn-sent 2>/dev/null \
-                | awk '/sing-box/ && match($4, /%[^: ]+/) {print substr($4, RSTART + 1, RLENGTH - 1)}' \
-                | sort -u \
-                | paste -sd, -)"
-        fi
-        [[ -z "${socket_interfaces}" ]] || printf 'Pending TCP interface: %s\n' "$(important_value "${socket_interfaces}")"
+    if ! have_command jq; then
+        printf 'Inbound: unavailable (jq is not installed).\n'
+        return 0
+    fi
+
+    jq_filter='.inbounds[]? | ([
+            "inbound",
+            (.tag // "-"),
+            (.type // "-"),
+            (.listen // "-"),
+            ((.listen_port // "-") | tostring)
+        ] | @tsv)'
+
+    if [[ -r "${config_path}" ]]; then
+        config_summary="$(jq -r "${jq_filter}" "${config_path}" 2>/dev/null || true)"
+    elif have_command sudo && sudo -n true 2>/dev/null; then
+        config_summary="$(sudo -n jq -r "${jq_filter}" "${config_path}" 2>/dev/null || true)"
+    else
+        printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
+        return 0
+    fi
+
+    if [[ -z "${config_summary}" ]]; then
+        printf 'Inbound: none configured or configuration could not be read.\n'
+        return 0
+    fi
+
+    while IFS=$'\t' read -r kind field1 field2 field3 field4; do
+        case "${kind}" in
+            inbound)
+                printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
+                    "$(important_value "${field1}")" \
+                    "$(important_value "${field2}")" \
+                    "$(important_value "${field3}")" \
+                    "$(important_value "${field4}")"
+                ((inbound_count += 1))
+                ;;
+        esac
+    done <<<"${config_summary}"
+
+    if ((inbound_count == 0)); then
+        printf 'Inbound: none configured.\n'
     fi
 }
 
@@ -611,7 +618,7 @@ print_summary() {
 
 main() {
     local interface_name
-    local gateway
+    local target
 
     init_output
     parse_args "$@"
@@ -621,19 +628,22 @@ main() {
 
     verbose_printf 'Network diagnostics started (read-only).\n'
     print_default_routes
-    probe_unbound_baseline
 
     for interface_name in "${INTERFACES[@]}"; do
         print_section "Interface ${interface_name}"
         print_interface_details "${interface_name}"
-        gateway="${INTERFACE_GATEWAYS[${interface_name}]:-}"
-        if [[ -n "${gateway}" ]]; then
-            probe_ping "${interface_name}" "${gateway}" gateway || true
-        else
-            record_result WARN "$(important_value "${interface_name}") has no gateway; gateway ping skipped."
-        fi
-        probe_ping "${interface_name}" 223.5.5.5 "public IP" || true
-        probe_https "${interface_name}" || true
+    done
+
+    print_section "DNS resolution"
+    for target in "${TEST_SITES[@]}"; do
+        probe_dns "${target}" || true
+    done
+
+    for interface_name in "${INTERFACES[@]}"; do
+        print_section "HTTPS via ${interface_name}"
+        for target in "${TEST_SITES[@]}"; do
+            probe_https "${interface_name}" "${target}" || true
+        done
     done
 
     check_shared_networks

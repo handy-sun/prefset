@@ -85,6 +85,109 @@ HTTPS_RESULTS[eth0]=fail
 summary="$(print_summary)"
 grep -Fq 'FAIL:' <<<"${summary}" || fail "failed HTTPS path is not diagnosed as FAIL"
 
+# Called indirectly by inspect_sing_box.
+# shellcheck disable=SC2329
+pgrep() {
+    return 1
+}
+[[ -z "$(inspect_sing_box)" ]] || fail "sing-box section appeared without a running process"
+unset -f pgrep
+
+TEST_ROOT="$(mktemp -d)"
+MOCK_BIN="${TEST_ROOT}/bin"
+CALLS="${TEST_ROOT}/calls"
+trap 'rm -rf -- "${TEST_ROOT}"' EXIT
+mkdir -p "${MOCK_BIN}"
+
+cat >"${MOCK_BIN}/ip" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == '-4 route show default' ]]; then
+    echo 'default via 127.0.0.1 dev lo metric 100'
+elif [[ "$*" == '-o -4 address show dev lo scope global' ]]; then
+    echo '1: lo inet 127.0.0.1/8 scope global lo'
+fi
+EOF
+
+cat >"${MOCK_BIN}/getent" <<'EOF'
+#!/usr/bin/env bash
+echo "getent $*" >>"${DIAG_TEST_CALLS}"
+echo '192.0.2.1 STREAM test.example'
+EOF
+
+cat >"${MOCK_BIN}/curl" <<'EOF'
+#!/usr/bin/env bash
+echo "curl $*" >>"${DIAG_TEST_CALLS}"
+printf 'HTTP 200, local 127.0.0.1, connect 0.01s, TLS 0.02s'
+EOF
+
+cat >"${MOCK_BIN}/pgrep" <<'EOF'
+#!/usr/bin/env bash
+echo "pgrep $*" >>"${DIAG_TEST_CALLS}"
+if [[ "$*" == '-x sing-box' ]]; then
+    echo 4242
+    exit 0
+fi
+exit 1
+EOF
+
+cat >"${MOCK_BIN}/systemctl" <<'EOF'
+#!/usr/bin/env bash
+echo "systemctl $*" >>"${DIAG_TEST_CALLS}"
+echo 'sing-box.service is active'
+EOF
+
+cat >"${MOCK_BIN}/sudo" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == '-n true' ]]; then
+    echo 'sudo -n true' >>"${DIAG_TEST_CALLS}"
+    exit 0
+fi
+if [[ "$1" == '-n' && "$2" == 'jq' ]]; then
+    echo 'sudo -n jq config' >>"${DIAG_TEST_CALLS}"
+    printf 'inbound\tmixed-in\tmixed\t::\t2334\n'
+    exit 0
+fi
+exit 1
+EOF
+
+chmod +x "${MOCK_BIN}"/*
+
+DIAG_TEST_CALLS="${CALLS}" PATH="${MOCK_BIN}:${PATH}" \
+    "${SCRIPT}" --interface lo --timeout 1 >"${TEST_ROOT}/output"
+
+expected_calls=$(cat <<'EOF'
+getent ahostsv4 baidu.com
+getent ahostsv4 archlinux.org
+getent ahostsv4 linux.do
+getent ahostsv4 google.com
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://baidu.com/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://archlinux.org/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://linux.do/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://google.com/
+pgrep -x sing-box
+systemctl status --no-pager --full --lines=0 sing-box.service
+sudo -n true
+sudo -n jq config
+EOF
+)
+
+[[ "$(<"${CALLS}")" == "${expected_calls}" ]] || {
+    diff -u <(printf '%s\n' "${expected_calls}") "${CALLS}" >&2 || true
+    fail "network probes or proxy diagnostics ran in the wrong order"
+}
+
+grep -Fq 'DNS baidu.com' "${TEST_ROOT}/output" || fail "DNS result for baidu.com was not printed"
+grep -Fq 'DNS google.com' "${TEST_ROOT}/output" || fail "DNS result for google.com was not printed"
+grep -Fq 'sing-box.service is active' "${TEST_ROOT}/output" || fail "sing-box status was not printed"
+grep -Fq 'Inbound: tag mixed-in | type mixed | listen :: | port 2334' "${TEST_ROOT}/output" || fail "sing-box inbound port was not printed"
+if grep -Eq 'Process:|Recent logs:|Auto-detect default interface:' "${TEST_ROOT}/output"; then
+    fail "sing-box output contains a removed process, log, or route field"
+fi
+
+if grep -Eq 'probe_ping|ping[[:space:]]+-4|inspect_proxy_process[[:space:]]+dae|pgrep[[:space:]]+-x[[:space:]]+dae' "${SCRIPT}"; then
+    fail "removed ping or dae diagnostics are still present"
+fi
+
 if grep -Eq 'nmcli[[:space:]]+device[[:space:]]+(disconnect|delete)|ip[[:space:]]+route[[:space:]]+(add|del|replace)|systemctl[[:space:]]+(start|stop|restart)|sysctl[[:space:]]+-w' "${SCRIPT}"; then
     fail "a network-changing command was found"
 fi
