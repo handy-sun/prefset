@@ -514,7 +514,7 @@ inspect_sing_box() {
     print_section "sing-box"
     if have_command systemctl; then
         printf 'Service status:\n'
-        systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 || true
+        systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 | grep -E 'Loaded:|Active:'|| true
     else
         printf 'Service status: unavailable (systemctl is not installed).\n'
     fi
