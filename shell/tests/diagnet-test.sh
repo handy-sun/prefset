@@ -31,6 +31,7 @@ route='default via 192.168.77.1 dev enp0s31f6 proto dhcp src 192.168.49.196 metr
 "${SCRIPT}" --help | grep -Fq 'Read-only network path diagnostics' || fail "help output is missing its description"
 "${SCRIPT}" --help | grep -Fq 'diagnet.sh [OPTIONS]' || fail "help output uses the wrong script name"
 "${SCRIPT}" --help | grep -Fq -- '--verbose' || fail "help output is missing --verbose"
+"${SCRIPT}" --help | grep -Fq 'macOS: uname, ifconfig, netstat, dscacheutil' || fail "help output is missing macOS prerequisites"
 
 legacy_name='diagnose-network''-path'
 if grep -Fq "${legacy_name}" "${SCRIPT}" "${BASH_SOURCE[0]}"; then
@@ -70,7 +71,7 @@ COLOR_ENABLED=false
 
 DEFAULT_ROUTES=('default via 192.168.77.1 dev eth0 metric 100')
 INTERFACES=(eth0)
-HTTPS_RESULTS[eth0]=pass
+map_set HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES eth0 pass
 record_result PASS 'this probe result must not be repeated' >/dev/null
 summary="$(print_summary)"
 grep -Fq 'PASS:' <<<"${summary}" || fail "healthy summary is missing PASS"
@@ -81,7 +82,7 @@ if grep -Fq 'this probe result must not be repeated' <<<"${summary}"; then
     fail "summary repeats individual probe results"
 fi
 
-HTTPS_RESULTS[eth0]=fail
+map_set HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES eth0 fail
 summary="$(print_summary)"
 grep -Fq 'FAIL:' <<<"${summary}" || fail "failed HTTPS path is not diagnosed as FAIL"
 
@@ -133,7 +134,7 @@ EOF
 cat >"${MOCK_BIN}/systemctl" <<'EOF'
 #!/usr/bin/env bash
 echo "systemctl $*" >>"${DIAG_TEST_CALLS}"
-echo 'sing-box.service is active'
+echo 'Active: active (running)'
 EOF
 
 cat >"${MOCK_BIN}/sudo" <<'EOF'
@@ -156,14 +157,14 @@ DIAG_TEST_CALLS="${CALLS}" PATH="${MOCK_BIN}:${PATH}" \
     "${SCRIPT}" --interface lo --timeout 1 >"${TEST_ROOT}/output"
 
 expected_calls=$(cat <<'EOF'
-getent ahostsv4 baidu.com
-getent ahostsv4 archlinux.org
-getent ahostsv4 linux.do
-getent ahostsv4 google.com
-curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://baidu.com/
-curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://archlinux.org/
-curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://linux.do/
-curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://google.com/
+getent ahostsv4 www.baidu.com
+getent ahostsv4 www.youtube.com
+getent ahostsv4 grok.com
+getent ahostsv4 www.google.com
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://www.baidu.com/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://www.youtube.com/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://grok.com/
+curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://www.google.com/
 pgrep -x sing-box
 systemctl status --no-pager --full --lines=0 sing-box.service
 sudo -n true
@@ -176,9 +177,9 @@ EOF
     fail "network probes or proxy diagnostics ran in the wrong order"
 }
 
-grep -Fq 'DNS baidu.com' "${TEST_ROOT}/output" || fail "DNS result for baidu.com was not printed"
-grep -Fq 'DNS google.com' "${TEST_ROOT}/output" || fail "DNS result for google.com was not printed"
-grep -Fq 'sing-box.service is active' "${TEST_ROOT}/output" || fail "sing-box status was not printed"
+grep -Fq 'DNS www.baidu.com' "${TEST_ROOT}/output" || fail "DNS result for www.baidu.com was not printed"
+grep -Fq 'DNS www.google.com' "${TEST_ROOT}/output" || fail "DNS result for www.google.com was not printed"
+grep -Fq 'Active: active (running)' "${TEST_ROOT}/output" || fail "sing-box status was not printed"
 grep -Fq 'Inbound: tag mixed-in | type mixed | listen :: | port 2334' "${TEST_ROOT}/output" || fail "sing-box inbound port was not printed"
 if grep -Eq 'Process:|Recent logs:|Auto-detect default interface:' "${TEST_ROOT}/output"; then
     fail "sing-box output contains a removed process, log, or route field"
@@ -190,6 +191,85 @@ fi
 
 if grep -Eq 'nmcli[[:space:]]+device[[:space:]]+(disconnect|delete)|ip[[:space:]]+route[[:space:]]+(add|del|replace)|systemctl[[:space:]]+(start|stop|restart)|sysctl[[:space:]]+-w' "${SCRIPT}"; then
     fail "a network-changing command was found"
+fi
+
+MAC_TEST_ROOT="${TEST_ROOT}/mac"
+MAC_MOCK_BIN="${MAC_TEST_ROOT}/bin"
+MAC_CALLS="${MAC_TEST_ROOT}/calls"
+mkdir -p "${MAC_MOCK_BIN}"
+
+cat >"${MAC_MOCK_BIN}/uname" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == '-s' ]] && echo Darwin
+EOF
+
+cat >"${MAC_MOCK_BIN}/netstat" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$*" == '-rn -f inet' ]]; then
+    cat <<'ROUTES'
+Routing tables
+Internet:
+Destination        Gateway            Flags        Netif Expire
+default            192.0.2.1          UGScg        en0
+ROUTES
+fi
+EOF
+
+cat >"${MAC_MOCK_BIN}/ifconfig" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1" == '-l' ]]; then
+    echo 'lo0 en0'
+    exit 0
+fi
+if [[ "$1" == 'en0' ]]; then
+    cat <<'IFCONFIG'
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST>
+    inet 192.0.2.10 netmask 0xffffff00 broadcast 192.0.2.255
+    status: active
+    media: autoselect (1000baseT <full-duplex>)
+IFCONFIG
+    exit 0
+fi
+exit 1
+EOF
+
+cat >"${MAC_MOCK_BIN}/dscacheutil" <<'EOF'
+#!/usr/bin/env bash
+echo "dscacheutil $*" >>"${DIAG_TEST_CALLS}"
+cat <<'DNS'
+name: example.test
+ip_address: 192.0.2.53
+DNS
+EOF
+
+cat >"${MAC_MOCK_BIN}/curl" <<'EOF'
+#!/usr/bin/env bash
+echo "curl $*" >>"${DIAG_TEST_CALLS}"
+printf 'HTTP 200, local 192.0.2.10, connect 0.01s, TLS 0.02s'
+EOF
+
+cat >"${MAC_MOCK_BIN}/pgrep" <<'EOF'
+#!/usr/bin/env bash
+echo "pgrep $*" >>"${DIAG_TEST_CALLS}"
+exit 1
+EOF
+
+chmod +x "${MAC_MOCK_BIN}"/*
+
+DIAG_TEST_CALLS="${MAC_CALLS}" PATH="${MAC_MOCK_BIN}:${PATH}" \
+    "${SCRIPT}" --timeout 1 >"${MAC_TEST_ROOT}/output"
+
+grep -Fq 'Default: en0 via 192.0.2.1' "${MAC_TEST_ROOT}/output" || fail "macOS default route was not diagnosed"
+grep -Fq 'en0  IPv4 192.0.2.10/24 | gateway 192.0.2.1 | carrier yes | speed 1000 Mbps' "${MAC_TEST_ROOT}/output" || { sed -n '1,80p' "${MAC_TEST_ROOT}/output" >&2; fail "macOS interface details were not diagnosed"; }
+grep -Fq 'DNS www.baidu.com: 192.0.2.53.' "${MAC_TEST_ROOT}/output" || fail "macOS DNS resolution was not diagnosed"
+grep -Fq 'en0 HTTPS www.baidu.com: HTTP 200' "${MAC_TEST_ROOT}/output" || fail "macOS HTTPS probing was not diagnosed"
+if grep -Eq 'missing required commands|/sys/class/net|ip -4 route|getent ahostsv4' "${MAC_TEST_ROOT}/output"; then
+    fail "macOS diagnostics reported Linux-only prerequisites"
+fi
+
+if DIAG_TEST_CALLS="${MAC_CALLS}" PATH="${MAC_MOCK_BIN}:${PATH}" \
+    "${SCRIPT}" --interface interface-that-does-not-exist >/dev/null 2>&1; then
+    fail "a nonexistent macOS interface was accepted"
 fi
 
 echo "PASS: all network diagnostics tests passed"

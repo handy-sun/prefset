@@ -7,12 +7,16 @@ TIMEOUT=4
 GATEWAY_OVERRIDE=""
 VERBOSE=false
 COLOR_ENABLED=false
+PLATFORM=""
 INTERFACES=()
 DEFAULT_ROUTES=()
 TEST_SITES=(www.baidu.com www.youtube.com grok.com www.google.com)
-declare -A HTTPS_RESULTS=()
-declare -A INTERFACE_GATEWAYS=()
-declare -A INTERFACE_NETWORKS=()
+HTTPS_RESULT_NAMES=()
+HTTPS_RESULT_VALUES=()
+INTERFACE_GATEWAY_NAMES=()
+INTERFACE_GATEWAY_VALUES=()
+INTERFACE_NETWORK_NAMES=()
+INTERFACE_NETWORK_VALUES=()
 
 print_help() {
     cat <<'EOF'
@@ -30,6 +34,13 @@ Options:
 
 The script does not disconnect interfaces, change routes, or restart services.
 Network failures are reported as findings and do not change the exit status.
+
+Required programs:
+  Linux: uname, ip, getent, curl, pgrep, awk, grep, sort, paste, tr
+  macOS: uname, ifconfig, netstat, dscacheutil, curl, pgrep, awk, grep, sort, paste, tr
+Optional programs:
+  jq (sing-box inbound details), sudo (read root-owned sing-box config),
+  systemctl, nmcli, ethtool (platform-specific extra details)
 EOF
 }
 
@@ -201,7 +212,17 @@ require_commands() {
     local command_name
     local missing=()
 
-    for command_name in ip getent curl pgrep awk; do
+    PLATFORM="$(uname -s 2>/dev/null || printf unknown)"
+    case "${PLATFORM}" in
+        Linux) REQUIRED_COMMANDS=(uname ip getent curl pgrep awk grep sort paste tr) ;;
+        Darwin) REQUIRED_COMMANDS=(uname ifconfig netstat dscacheutil curl pgrep awk grep sort paste tr) ;;
+        *)
+            echo "Error: unsupported platform: ${PLATFORM}" >&2
+            return 2
+            ;;
+    esac
+
+    for command_name in "${REQUIRED_COMMANDS[@]}"; do
         command -v "${command_name}" >/dev/null 2>&1 || missing+=("${command_name}")
     done
 
@@ -213,6 +234,55 @@ require_commands() {
 
 have_command() {
     command -v "$1" >/dev/null 2>&1
+}
+
+map_set() {
+    local names_name="$1"
+    local values_name="$2"
+    local key="$3"
+    local value="$4"
+    local index
+    local found=false
+
+    case "${names_name}:${values_name}" in
+        HTTPS_RESULT_NAMES:HTTPS_RESULT_VALUES)
+            for index in "${!HTTPS_RESULT_NAMES[@]}"; do
+                if [[ "${HTTPS_RESULT_NAMES[index]}" == "${key}" ]]; then HTTPS_RESULT_VALUES[index]="${value}"; found=true; break; fi
+            done
+            [[ "${found}" == true ]] || { HTTPS_RESULT_NAMES+=("${key}"); HTTPS_RESULT_VALUES+=("${value}"); }
+            ;;
+        INTERFACE_GATEWAY_NAMES:INTERFACE_GATEWAY_VALUES)
+            for index in "${!INTERFACE_GATEWAY_NAMES[@]}"; do
+                if [[ "${INTERFACE_GATEWAY_NAMES[index]}" == "${key}" ]]; then INTERFACE_GATEWAY_VALUES[index]="${value}"; found=true; break; fi
+            done
+            [[ "${found}" == true ]] || { INTERFACE_GATEWAY_NAMES+=("${key}"); INTERFACE_GATEWAY_VALUES+=("${value}"); }
+            ;;
+        INTERFACE_NETWORK_NAMES:INTERFACE_NETWORK_VALUES)
+            for index in "${!INTERFACE_NETWORK_NAMES[@]}"; do
+                if [[ "${INTERFACE_NETWORK_NAMES[index]}" == "${key}" ]]; then INTERFACE_NETWORK_VALUES[index]="${value}"; found=true; break; fi
+            done
+            [[ "${found}" == true ]] || { INTERFACE_NETWORK_NAMES+=("${key}"); INTERFACE_NETWORK_VALUES+=("${value}"); }
+            ;;
+        *) return 2 ;;
+    esac
+}
+
+map_get() {
+    local names_name="$1"
+    local values_name="$2"
+    local key="$3"
+    local index
+
+    case "${names_name}:${values_name}" in
+        HTTPS_RESULT_NAMES:HTTPS_RESULT_VALUES)
+            for index in "${!HTTPS_RESULT_NAMES[@]}"; do [[ "${HTTPS_RESULT_NAMES[index]}" == "${key}" ]] && { printf '%s\n' "${HTTPS_RESULT_VALUES[index]}"; return 0; }; done ;;
+        INTERFACE_GATEWAY_NAMES:INTERFACE_GATEWAY_VALUES)
+            for index in "${!INTERFACE_GATEWAY_NAMES[@]}"; do [[ "${INTERFACE_GATEWAY_NAMES[index]}" == "${key}" ]] && { printf '%s\n' "${INTERFACE_GATEWAY_VALUES[index]}"; return 0; }; done ;;
+        INTERFACE_NETWORK_NAMES:INTERFACE_NETWORK_VALUES)
+            for index in "${!INTERFACE_NETWORK_NAMES[@]}"; do [[ "${INTERFACE_NETWORK_NAMES[index]}" == "${key}" ]] && { printf '%s\n' "${INTERFACE_NETWORK_VALUES[index]}"; return 0; }; done ;;
+        *) return 2 ;;
+    esac
+    return 1
 }
 
 print_section() {
@@ -228,7 +298,16 @@ record_result() {
 }
 
 collect_default_routes() {
-    mapfile -t DEFAULT_ROUTES < <(ip -4 route show default 2>/dev/null || true)
+    DEFAULT_ROUTES=()
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        while IFS= read -r route; do
+            [[ -n "${route}" ]] && DEFAULT_ROUTES+=("${route}")
+        done < <(netstat -rn -f inet 2>/dev/null | awk '$1 == "default" {print "default via " $2 " dev " $4 " metric 0"}')
+    else
+        while IFS= read -r route; do
+            [[ -n "${route}" ]] && DEFAULT_ROUTES+=("${route}")
+        done < <(ip -4 route show default 2>/dev/null || true)
+    fi
 }
 
 discover_interfaces() {
@@ -242,10 +321,19 @@ discover_interfaces() {
     fi
 
     if ((${#INTERFACES[@]} == 0)); then
-        while IFS= read -r interface_name; do
-            [[ "${interface_name}" != "lo" ]] || continue
-            add_interface "${interface_name}"
-        done < <(ip -o -4 address show up scope global | awk '{print $2}' | sort -u)
+        if [[ "${PLATFORM}" == Darwin ]]; then
+            while IFS= read -r interface_name; do
+                [[ "${interface_name}" != "lo0" ]] || continue
+                if ifconfig "${interface_name}" 2>/dev/null | grep -q '^[[:space:]]*inet '; then
+                    add_interface "${interface_name}"
+                fi
+            done < <(ifconfig -l 2>/dev/null | tr ' ' '\n')
+        else
+            while IFS= read -r interface_name; do
+                [[ "${interface_name}" != "lo" ]] || continue
+                add_interface "${interface_name}"
+            done < <(ip -o -4 address show up scope global | awk '{print $2}' | sort -u)
+        fi
     fi
 
     if ((${#INTERFACES[@]} == 0)); then
@@ -254,7 +342,11 @@ discover_interfaces() {
     fi
 
     for interface_name in "${INTERFACES[@]}"; do
-        if [[ ! -d "/sys/class/net/${interface_name}" ]]; then
+        if [[ "${PLATFORM}" == Linux && ! -d "/sys/class/net/${interface_name}" ]]; then
+            echo "Error: interface does not exist: ${interface_name}" >&2
+            return 2
+        fi
+        if [[ "${PLATFORM}" == Darwin ]] && ! ifconfig "${interface_name}" >/dev/null 2>&1; then
             echo "Error: interface does not exist: ${interface_name}" >&2
             return 2
         fi
@@ -325,7 +417,45 @@ print_default_routes() {
 }
 
 interface_ipv4_cidr() {
-    ip -o -4 address show dev "$1" scope global 2>/dev/null | awk 'NR == 1 {print $4}'
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        local address netmask prefix ipv4_line
+        ipv4_line="$(ifconfig "$1" 2>/dev/null | awk '$1 == "inet" && $2 != "127.0.0.1" {print; exit}')"
+        address="$(awk '{print $2}' <<<"${ipv4_line}")"
+        netmask="$(awk '{print $4}' <<<"${ipv4_line}")"
+        [[ -n "${address}" ]] || return 0
+        prefix="$(netmask_prefix "${netmask}" || true)"
+        [[ -n "${prefix}" ]] || return 0
+        printf '%s/%s\n' "${address}" "${prefix}"
+    else
+        ip -o -4 address show dev "$1" scope global 2>/dev/null | awk 'NR == 1 {print $4}'
+    fi
+}
+
+netmask_prefix() {
+    local netmask="$1"
+    local prefix=0
+    local value bit octet
+    local -a octets=()
+
+    if [[ "${netmask}" =~ ^0x[0-9a-fA-F]+$ ]]; then
+        value=$((16#${netmask#0x}))
+        for ((bit = 31; bit >= 0; bit--)); do
+            ((value & (1 << bit))) || break
+            ((prefix += 1))
+        done
+    else
+        IFS=. read -r -a octets <<<"${netmask}"
+        ((${#octets[@]} == 4)) || return 1
+        for octet in "${octets[@]}"; do
+            [[ "${octet}" =~ ^[0-9]+$ ]] && ((10#${octet} <= 255)) || return 1
+            value="${octet}"
+            for ((bit = 7; bit >= 0; bit--)); do
+                ((value & (1 << bit))) || break
+                ((prefix += 1))
+            done
+        done
+    fi
+    printf '%s\n' "${prefix}"
 }
 
 ipv4_network() {
@@ -380,13 +510,20 @@ print_interface_details() {
     cidr="$(interface_ipv4_cidr "${interface_name}")"
     gateway="$(interface_gateway "${interface_name}")"
     route="$(find_interface_route "${interface_name}" || true)"
-    INTERFACE_GATEWAYS["${interface_name}"]="${gateway}"
+    map_set INTERFACE_GATEWAY_NAMES INTERFACE_GATEWAY_VALUES "${interface_name}" "${gateway}"
 
     if [[ -n "${cidr}" ]]; then
-        INTERFACE_NETWORKS["${interface_name}"]="$(ipv4_network "${cidr}" || true)"
+        map_set INTERFACE_NETWORK_NAMES INTERFACE_NETWORK_VALUES "${interface_name}" "$(ipv4_network "${cidr}" || true)"
     fi
-    [[ -r "/sys/class/net/${interface_name}/carrier" ]] && carrier_raw="$(<"/sys/class/net/${interface_name}/carrier")"
-    [[ -r "/sys/class/net/${interface_name}/speed" ]] && speed_raw="$(<"/sys/class/net/${interface_name}/speed")"
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        local interface_dump
+        interface_dump="$(ifconfig "${interface_name}" 2>/dev/null || true)"
+        grep -q 'status: active' <<<"${interface_dump}" && carrier_raw=1
+        speed_raw="$(awk -F'[()]' '/media:.*baseT|media:.*baseTX|media:.*baseFX/ {match($2, /[0-9]+/); print substr($2, RSTART, RLENGTH); exit}' <<<"${interface_dump}")"
+    else
+        [[ -r "/sys/class/net/${interface_name}/carrier" ]] && carrier_raw="$(<"/sys/class/net/${interface_name}/carrier")"
+        [[ -r "/sys/class/net/${interface_name}/speed" ]] && speed_raw="$(<"/sys/class/net/${interface_name}/speed")"
+    fi
 
     printf '%s  IPv4 %s | gateway %s | carrier %s | speed %s | metric %s\n' \
         "$(important_value "${interface_name}")" \
@@ -417,8 +554,18 @@ probe_dns() {
     local output
     local addresses
 
-    if output="$(getent ahostsv4 "${target}" 2>&1)"; then
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        if output="$(dscacheutil -q host -a name "${target}" 2>&1)"; then
+            addresses="$(awk '$1 == "ip_address:" && $2 ~ /^[0-9.]+$/ {print $2}' <<<"${output}" | sort -u | paste -sd, -)"
+        else
+            addresses=""
+        fi
+    elif output="$(getent ahostsv4 "${target}" 2>&1)"; then
         addresses="$(awk '{print $1}' <<<"${output}" | sort -u | paste -sd, -)"
+    else
+        addresses=""
+    fi
+    if [[ -n "${addresses}" ]]; then
         record_result PASS "DNS ${target}: ${addresses}."
         verbose_printf '  DNS detail:\n%s\n' "${output}"
         return 0
@@ -446,15 +593,15 @@ probe_https() {
         --max-time "${max_time}" \
         --write-out 'HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s' \
         "https://${target}/" 2>&1)"; then
-        if [[ "${HTTPS_RESULTS[${interface_name}]:-}" != fail ]]; then
-            HTTPS_RESULTS["${interface_name}"]=pass
+        if [[ "$(map_get HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${interface_name}" || true)" != fail ]]; then
+            map_set HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${interface_name}" pass
         fi
         record_result PASS "$(important_value "${interface_name}") HTTPS ${target}: ${output}."
         verbose_printf '  HTTPS detail: %s\n' "${output}"
         return 0
     fi
 
-    HTTPS_RESULTS["${interface_name}"]=fail
+    map_set HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${interface_name}" fail
     output="${output//$'\n'/ }"
     record_result FAIL "$(important_value "${interface_name}") HTTPS ${target}: ${output}"
     return 1
@@ -478,10 +625,15 @@ check_shared_networks() {
         for ((right = left + 1; right < ${#INTERFACES[@]}; right++)); do
             local left_name="${INTERFACES[left]}"
             local right_name="${INTERFACES[right]}"
-            local left_gateway="${INTERFACE_GATEWAYS[${left_name}]:-}"
-            local right_gateway="${INTERFACE_GATEWAYS[${right_name}]:-}"
-            local left_network="${INTERFACE_NETWORKS[${left_name}]:-}"
-            local right_network="${INTERFACE_NETWORKS[${right_name}]:-}"
+            local left_gateway=""
+            local right_gateway=""
+            local left_network=""
+            local right_network=""
+
+            left_gateway="$(map_get INTERFACE_GATEWAY_NAMES INTERFACE_GATEWAY_VALUES "${left_name}" || true)"
+            right_gateway="$(map_get INTERFACE_GATEWAY_NAMES INTERFACE_GATEWAY_VALUES "${right_name}" || true)"
+            left_network="$(map_get INTERFACE_NETWORK_NAMES INTERFACE_NETWORK_VALUES "${left_name}" || true)"
+            right_network="$(map_get INTERFACE_NETWORK_NAMES INTERFACE_NETWORK_VALUES "${right_name}" || true)"
 
             if [[ -n "${left_gateway}" && "${left_gateway}" == "${right_gateway}" ]]; then
                 record_result WARN "$(important_value "${left_name}") and $(important_value "${right_name}") share gateway ${left_gateway}; the lower route metric wins."
@@ -577,9 +729,9 @@ print_summary() {
 
     winner="$(find_winning_route || true)"
     [[ -z "${winner}" ]] || winner_interface="$(route_device "${winner}")"
-    if [[ -n "${winner_interface}" && "${HTTPS_RESULTS[${winner_interface}]:-}" == fail ]]; then
+    if [[ -n "${winner_interface}" && "$(map_get HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${winner_interface}" || true)" == fail ]]; then
         for alternative in "${INTERFACES[@]}"; do
-            if [[ "${HTTPS_RESULTS[${alternative}]:-}" == pass ]]; then
+            if [[ "$(map_get HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${alternative}" || true)" == pass ]]; then
                 printf '%s: Default route %s fails; %s works.\n' \
                     "$(status_label FAIL)" \
                     "$(important_value "${winner_interface}")" \
@@ -593,12 +745,14 @@ print_summary() {
     fi
 
     for interface_name in "${INTERFACES[@]}"; do
-        if [[ -n "${HTTPS_RESULTS[${interface_name}]:-}" ]]; then
+        local result
+        result="$(map_get HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES "${interface_name}" || true)"
+        if [[ -n "${result}" ]]; then
             ((tested_count += 1))
         fi
-        if [[ "${HTTPS_RESULTS[${interface_name}]:-}" == pass ]]; then
+        if [[ "${result}" == pass ]]; then
             ((passed_count += 1))
-        elif [[ "${HTTPS_RESULTS[${interface_name}]:-}" == fail ]]; then
+        elif [[ "${result}" == fail ]]; then
             ((failed_count += 1))
         fi
     done
