@@ -36,11 +36,16 @@ The script does not disconnect interfaces, change routes, or restart services.
 Network failures are reported as findings and do not change the exit status.
 
 Required programs:
-  Linux: uname, ip, getent, curl, pgrep, awk, grep, sort, paste, tr
-  macOS: uname, ifconfig, netstat, dscacheutil, curl, pgrep, awk, grep, sort, paste, tr
+  Linux: uname, ip, getent, curl, pgrep, awk, grep, sort, paste, tr, cat
+  macOS: uname, ifconfig, netstat, dscacheutil, curl, pgrep, awk, grep, sort, paste, tr, cat
 Optional programs:
-  jq (sing-box inbound details), sudo (read root-owned sing-box config),
+  jq (sing-box inbound details), sudo (read root-owned proxy configs),
   systemctl, nmcli, ethtool (platform-specific extra details)
+
+Proxy config paths checked:
+  sing-box: /run/sing-box/config.json
+  dae: /run/secrets/dae-config.dae, /etc/dae/config.dae
+  mihomo: /run/mihomo/config.yaml, /etc/mihomo/config.yaml, /var/lib/mihomo/config.yaml
 EOF
 }
 
@@ -214,8 +219,8 @@ require_commands() {
 
     PLATFORM="$(uname -s 2>/dev/null || printf unknown)"
     case "${PLATFORM}" in
-        Linux) REQUIRED_COMMANDS=(uname ip getent curl pgrep awk grep sort paste tr) ;;
-        Darwin) REQUIRED_COMMANDS=(uname ifconfig netstat dscacheutil curl pgrep awk grep sort paste tr) ;;
+        Linux) REQUIRED_COMMANDS=(uname ip getent curl pgrep awk grep sort paste tr cat) ;;
+        Darwin) REQUIRED_COMMANDS=(uname ifconfig netstat dscacheutil curl pgrep awk grep sort paste tr cat) ;;
         *)
             echo "Error: unsupported platform: ${PLATFORM}" >&2
             return 2
@@ -665,8 +670,7 @@ inspect_sing_box() {
 
     print_section "sing-box"
     if have_command systemctl; then
-        printf 'Service status:\n'
-        systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 | grep -E 'Loaded:|Active:'|| true
+        print_service_status "${unit_name}"
     else
         printf 'Service status: unavailable (systemctl is not installed).\n'
     fi
@@ -714,6 +718,111 @@ inspect_sing_box() {
     if ((inbound_count == 0)); then
         printf 'Inbound: none configured.\n'
     fi
+}
+
+print_service_status() {
+    local unit_name="$1"
+
+    printf 'Service status:\n'
+    systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 | grep -E 'Loaded:|Active:' || true
+}
+
+read_config_file() {
+    local config_path
+
+    for config_path in "$@"; do
+        if [[ -r "${config_path}" ]]; then
+            cat "${config_path}"
+            return 0
+        fi
+        if have_command sudo && sudo -n true 2>/dev/null && sudo -n cat "${config_path}" 2>/dev/null; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+inspect_dae() {
+    local config_path="/run/secrets/dae-config.dae"
+    local config_summary
+    local tproxy_port
+
+    if ! pgrep -x dae >/dev/null 2>&1; then
+        return 0
+    fi
+
+    print_section "dae"
+    if have_command systemctl; then
+        print_service_status dae.service
+    else
+        printf 'Service status: unavailable (systemctl is not installed).\n'
+    fi
+
+    if ! config_summary="$(read_config_file "${config_path}" /etc/dae/config.dae)"; then
+        printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
+        return 0
+    fi
+
+    tproxy_port="$(awk -F: '$1 ~ /^[[:space:]]*tproxy_port[[:space:]]*$/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' <<<"${config_summary}")"
+    if [[ "${tproxy_port}" =~ ^[0-9]+$ ]]; then
+        printf 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port %s\n' "${tproxy_port}"
+    else
+        printf 'Inbound: none configured.\n'
+    fi
+}
+
+inspect_mihomo() {
+    local config_path="/run/mihomo/config.yaml"
+    local config_summary
+    local bind_address
+    local kind port type
+
+    if ! pgrep -x mihomo >/dev/null 2>&1; then
+        return 0
+    fi
+
+    print_section "mihomo"
+    if have_command systemctl; then
+        print_service_status mihomo.service
+    else
+        printf 'Service status: unavailable (systemctl is not installed).\n'
+    fi
+
+    if ! config_summary="$(read_config_file "${config_path}" /etc/mihomo/config.yaml /var/lib/mihomo/config.yaml)"; then
+        printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
+        return 0
+    fi
+
+    bind_address="$(awk -F: '$1 ~ /^bind-address[[:space:]]*$/ {gsub(/[[:space:]"]/, "", $2); print $2; exit}' <<<"${config_summary}")"
+    bind_address="${bind_address:-0.0.0.0}"
+    while IFS=$'\t' read -r kind port; do
+        [[ -n "${kind}" && -n "${port}" ]] || continue
+        case "${kind}" in
+            port) type=http ;;
+            socks-port) type=socks ;;
+            redir-port) type=redir ;;
+            mixed-port) type=mixed ;;
+            tproxy-port) type=tproxy ;;
+            *) continue ;;
+        esac
+        printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
+            "${kind}" "${type}" "${bind_address}" "${port}"
+    done < <(awk -F: '/^(port|socks-port|redir-port|mixed-port|tproxy-port)[[:space:]]*:/ {key=$1; gsub(/[[:space:]]/, "", key); value=$2; gsub(/[[:space:]]/, "", value); print key "\t" value}' <<<"${config_summary}")
+
+    awk -F: '$1 ~ /^external-controller[[:space:]]*$/ {
+        value=$2
+        for (i = 3; i <= NF; i++) value=value ":" $i
+        sub(/^[[:space:]]*/, "", value)
+        gsub(/"/, "", value)
+        gsub(/\047/, "", value)
+        port=value
+        sub(/^.*:/, "", port)
+        if (port ~ /^[0-9]+$/) {
+            host=substr(value, 1, length(value)-length(port)-1)
+            printf "Controller: listen %s | port %s\n", host, port
+        }
+        exit
+    }' <<<"${config_summary}"
 }
 
 print_summary() {
@@ -802,6 +911,8 @@ main() {
 
     check_shared_networks
     inspect_sing_box
+    inspect_dae
+    inspect_mihomo
     print_summary
 
     verbose_printf '\nNetwork diagnostics completed.\n'

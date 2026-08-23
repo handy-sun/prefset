@@ -92,6 +92,12 @@ pgrep() {
     return 1
 }
 [[ -z "$(inspect_sing_box)" ]] || fail "sing-box section appeared without a running process"
+# shellcheck disable=SC2329
+pgrep() {
+    return 1
+}
+[[ -z "$(inspect_dae)" ]] || fail "dae section appeared without a running process"
+[[ -z "$(inspect_mihomo)" ]] || fail "mihomo section appeared without a running process"
 unset -f pgrep
 
 TEST_ROOT="$(mktemp -d)"
@@ -124,7 +130,7 @@ EOF
 cat >"${MOCK_BIN}/pgrep" <<'EOF'
 #!/usr/bin/env bash
 echo "pgrep $*" >>"${DIAG_TEST_CALLS}"
-if [[ "$*" == '-x sing-box' ]]; then
+if [[ "$*" == '-x sing-box' || "$*" == '-x dae' || "$*" == '-x mihomo' ]]; then
     echo 4242
     exit 0
 fi
@@ -148,6 +154,16 @@ if [[ "$1" == '-n' && "$2" == 'jq' ]]; then
     printf 'inbound\tmixed-in\tmixed\t::\t2334\n'
     exit 0
 fi
+if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/secrets/dae-config.dae' ]]; then
+    echo 'sudo -n cat /run/secrets/dae-config.dae' >>"${DIAG_TEST_CALLS}"
+    printf 'global {\n    tproxy_port: 12345\n}\n'
+    exit 0
+fi
+if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/mihomo/config.yaml' ]]; then
+    echo 'sudo -n cat /run/mihomo/config.yaml' >>"${DIAG_TEST_CALLS}"
+    printf 'bind-address: "*"\nmixed-port: 7890\nredir-port: 7891\ntproxy-port: 7892\nexternal-controller: 0.0.0.0:9390\n'
+    exit 0
+fi
 exit 1
 EOF
 
@@ -169,6 +185,14 @@ pgrep -x sing-box
 systemctl status --no-pager --full --lines=0 sing-box.service
 sudo -n true
 sudo -n jq config
+pgrep -x dae
+systemctl status --no-pager --full --lines=0 dae.service
+sudo -n true
+sudo -n cat /run/secrets/dae-config.dae
+pgrep -x mihomo
+systemctl status --no-pager --full --lines=0 mihomo.service
+sudo -n true
+sudo -n cat /run/mihomo/config.yaml
 EOF
 )
 
@@ -181,12 +205,19 @@ grep -Fq 'DNS www.baidu.com' "${TEST_ROOT}/output" || fail "DNS result for www.b
 grep -Fq 'DNS www.google.com' "${TEST_ROOT}/output" || fail "DNS result for www.google.com was not printed"
 grep -Fq 'Active: active (running)' "${TEST_ROOT}/output" || fail "sing-box status was not printed"
 grep -Fq 'Inbound: tag mixed-in | type mixed | listen :: | port 2334' "${TEST_ROOT}/output" || fail "sing-box inbound port was not printed"
+grep -Fq '── dae ──' "${TEST_ROOT}/output" || fail "dae status section was not printed"
+grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port 12345' "${TEST_ROOT}/output" || fail "dae inbound port was not printed"
+grep -Fq '── mihomo ──' "${TEST_ROOT}/output" || fail "mihomo status section was not printed"
+grep -Fq 'Inbound: tag mixed-port | type mixed | listen * | port 7890' "${TEST_ROOT}/output" || fail "mihomo mixed port was not printed"
+grep -Fq 'Inbound: tag redir-port | type redir | listen * | port 7891' "${TEST_ROOT}/output" || fail "mihomo redir port was not printed"
+grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen * | port 7892' "${TEST_ROOT}/output" || fail "mihomo tproxy port was not printed"
+grep -Fq 'Controller: listen 0.0.0.0 | port 9390' "${TEST_ROOT}/output" || fail "mihomo controller was not printed"
 if grep -Eq 'Process:|Recent logs:|Auto-detect default interface:' "${TEST_ROOT}/output"; then
     fail "sing-box output contains a removed process, log, or route field"
 fi
 
-if grep -Eq 'probe_ping|ping[[:space:]]+-4|inspect_proxy_process[[:space:]]+dae|pgrep[[:space:]]+-x[[:space:]]+dae' "${SCRIPT}"; then
-    fail "removed ping or dae diagnostics are still present"
+if grep -Eq 'probe_ping|ping[[:space:]]+-4|inspect_proxy_process' "${SCRIPT}"; then
+    fail "removed ping diagnostics are still present"
 fi
 
 if grep -Eq 'nmcli[[:space:]]+device[[:space:]]+(disconnect|delete)|ip[[:space:]]+route[[:space:]]+(add|del|replace)|systemctl[[:space:]]+(start|stop|restart)|sysctl[[:space:]]+-w' "${SCRIPT}"; then
