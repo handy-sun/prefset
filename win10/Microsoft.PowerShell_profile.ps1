@@ -116,6 +116,9 @@ function grsh { & git reset --hard @args }
 function grss { & git reset --soft @args }
 function gro { & git restore @args }
 function grg { & git restore --staged @args }
+function gph { & git push @args }
+function gsw { & git show @args }
+function gsws { & git show --stat @args }
 
 function glg {
     & git log "--pretty=format:%Cred%h%Creset %Cgreen(%ad) %Creset%s %C(bold blue)<%an>%Creset%C(yellow)%d" "--date=format:%Y-%m-%d %H:%M" --abbrev-commit --color @args
@@ -302,7 +305,7 @@ function md5sum {
 }
 
 $sbSubs = "http://fngo.local:3001/c53248f264d9997/download/collection/main?target=URI"
-$sbPolicy = "@🌐Proxy@⚡UrlTest-~^(?!.*(kooya)).*$@💬AI$@🚀LowLatency"
+$sbPolicy = "@🌐Proxy@⚡UrlTest-~^(?!.*(kooya|流量|套餐|重置)).*$@💬AI@🚀LowLatency@🎮Steam"
 
 function genWinTunSb {
     node D:\handy\sbtpl\node\base.js -s $sbSubs -p $sbPolicy --tun --icmp --windows -o ~\.config\sbroot\config.json
@@ -311,4 +314,9 @@ function genWinTunSb {
 function genWinSb {
     node D:\handy\sbtpl\node\base.js -s $sbSubs -p $sbPolicy --icmp --windows -o ~\.config\sbroot\config.json
 }
+
+function genWinRealSb {
+    node D:\handy\sbtpl\node\base.js -s $sbSubs -p $sbPolicy --icmp --windows --template D:\handy\sbtpl\substore\real-dns.json -o ~\.config\sbroot\config.json
+}
+
 # try { $null = gcm pshazz -ea stop; pshazz init 'default' } catch { }
