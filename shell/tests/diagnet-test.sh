@@ -100,6 +100,33 @@ pgrep() {
 [[ -z "$(inspect_mihomo)" ]] || fail "mihomo section appeared without a running process"
 unset -f pgrep
 
+# Proxy inbound values use the same blue highlighting as sing-box values.
+COLOR_ENABLED=true
+# shellcheck disable=SC2329
+pgrep() { return 0; }
+# shellcheck disable=SC2329
+print_service_status() { :; }
+# shellcheck disable=SC2329
+read_config_file() {
+    case "$1" in
+        /run/secrets/dae-config.dae)
+            printf 'global {\n    tproxy_port: 12345\n}\n'
+            ;;
+        /run/mihomo/config.yaml)
+            printf 'bind-address: "*"\nmixed-port: 7890\n'
+            ;;
+        *) return 1 ;;
+    esac
+}
+dae_highlighted="$(inspect_dae)"
+grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12345\033[0m' <<<"${dae_highlighted}" \
+    || fail "dae inbound values were not highlighted"
+mihomo_highlighted="$(inspect_mihomo)"
+grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | listen \033[34m*\033[0m | port \033[34m7890\033[0m' <<<"${mihomo_highlighted}" \
+    || fail "mihomo inbound values were not highlighted"
+unset -f pgrep print_service_status read_config_file
+COLOR_ENABLED=false
+
 TEST_ROOT="$(mktemp -d)"
 MOCK_BIN="${TEST_ROOT}/bin"
 CALLS="${TEST_ROOT}/calls"

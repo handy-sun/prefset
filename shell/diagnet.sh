@@ -765,7 +765,11 @@ inspect_dae() {
 
     tproxy_port="$(awk -F: '$1 ~ /^[[:space:]]*tproxy_port[[:space:]]*$/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' <<<"${config_summary}")"
     if [[ "${tproxy_port}" =~ ^[0-9]+$ ]]; then
-        printf 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port %s\n' "${tproxy_port}"
+        printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
+            "$(important_value 'tproxy-port')" \
+            "$(important_value 'tproxy')" \
+            "$(important_value '0.0.0.0')" \
+            "$(important_value "${tproxy_port}")"
     else
         printf 'Inbound: none configured.\n'
     fi
@@ -806,7 +810,10 @@ inspect_mihomo() {
             *) continue ;;
         esac
         printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
-            "${kind}" "${type}" "${bind_address}" "${port}"
+            "$(important_value "${kind}")" \
+            "$(important_value "${type}")" \
+            "$(important_value "${bind_address}")" \
+            "$(important_value "${port}")"
     done < <(awk -F: '/^(port|socks-port|redir-port|mixed-port|tproxy-port)[[:space:]]*:/ {key=$1; gsub(/[[:space:]]/, "", key); value=$2; gsub(/[[:space:]]/, "", value); print key "\t" value}' <<<"${config_summary}")
 
     awk -F: '$1 ~ /^external-controller[[:space:]]*$/ {
