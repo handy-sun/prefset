@@ -103,11 +103,14 @@ function gcma { & git commit -a @args }
 function gcmam { & git commit -a -m @args }
 function gcmn { & git commit --amend @args }
 function gcman { & git commit -a --amend @args }
+function gcmnn { & git commit --amend --no-edit @args }
+function gcmann { & git commit -a --amend --no-edit @args }
 
 function gpl { & git pull @args }
 function gplrb { & git pull --rebase @args }
 
 function gsh { & git stash @args }
+function gshm { & git stash -m @args }
 function gshl { & git stash list @args }
 function gshp { & git stash pop @args }
 
@@ -123,8 +126,22 @@ function gsws { & git show --stat @args }
 function glg {
     & git log "--pretty=format:%Cred%h%Creset %Cgreen(%ad) %Creset%s %C(bold blue)<%an>%Creset%C(yellow)%d" "--date=format:%Y-%m-%d %H:%M" --abbrev-commit --color @args
 }
+function glgd { & git log --graph --decorate @args }
 function glp { glg --graph @args }
-function glh { glp @args | Select-Object -First 30 }
+function glh {
+    $outputLines = 30
+    try { $terminalLines = $Host.UI.RawUI.WindowSize.Height } catch { $terminalLines = 0 }
+    if ($terminalLines -gt 0) {
+        if ($terminalLines -lt 3) {
+            $outputLines = 0
+        }
+        elseif ($terminalLines -lt 32) {
+            $outputLines = $terminalLines - 2
+        }
+    }
+
+    glp --color=always @args | Select-Object -First $outputLines
+}
 function glsa {
     & git log "--pretty=format:%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" "--date=format:%Y-%m-%d %H:%M" --abbrev-commit --graph --all @args
 }
@@ -144,14 +161,9 @@ function gcln { & git clean -n @args }
 function gclfd { & git clean -fd @args }
 
 function gpar {
-    $branch = if ($args.Length -gt 0) { $args[0] } else { $null }
-    git remote | ForEach-Object {
-        if ($branch) {
-            & git push $_ $branch
-        }
-        else {
-            & git push $_
-        }
+    $gitArgs = $args
+    foreach ($remote in @(git remote)) {
+        & git push $remote @gitArgs
     }
 }
 
@@ -166,15 +178,12 @@ function grt {
 }
 
 function gbc {
-    if ($args.Length -lt 1 -or -not $args[0]) {
-        Write-Error "Usage: gbc <branch>"
+    if ($args.Count -lt 1) {
+        Write-Error 'Usage: gbc <branch>'
         return
     }
 
-    & git branch $args[0]
-    if ($LASTEXITCODE -eq 0) {
-        & git checkout $args[0]
-    }
+    & git checkout -b @args
 }
 
 function Get-GitRootDir {
@@ -217,6 +226,113 @@ function grga {
     }
 
     & git -C $rootDir restore --staged . @args
+}
+
+## stash by index (stash@{N})
+function shpo {
+    param([int]$Index = 0)
+    & git stash pop "stash@{$Index}"
+}
+
+function shap {
+    param([int]$Index = 0)
+    & git stash apply "stash@{$Index}"
+}
+
+function shsw {
+    param([int]$Index = 0)
+    & git stash show -p "stash@{$Index}"
+}
+
+function shdr {
+    param([int]$Index = 0)
+    & git stash drop "stash@{$Index}"
+}
+
+## quickly update(rebase) git repo between local and all remotes
+function gitur {
+    $changed = @(& git status -s | Where-Object { $_ -notmatch '^(\?\?| {2})' } | ForEach-Object { $_.Substring(3) })
+    if ($changed.Count -gt 0) {
+        & git add -- @changed
+        if ($LASTEXITCODE -ne 0) { return }
+    }
+
+    & git commit
+    & git pull --rebase
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host 'handle conflicts first!'
+        return
+    }
+
+    foreach ($remote in @(git remote)) {
+        & git push $remote
+    }
+}
+
+## fetch a .gitignore template from the Toptal API
+function ggi {
+    if (Test-Path .gitignore) {
+        Write-Error ".gitignore already exists in $(Get-Location)"
+        return
+    }
+
+    if ($args.Count -eq 0) {
+        Write-Host 'Usage: ggi <template> [template...]'
+        return
+    }
+
+    $templates = $args -join ','
+    try {
+        $content = (Invoke-WebRequest -Uri "https://www.toptal.com/developers/gitignore/api/$templates").Content
+    }
+    catch {
+        Write-Error "Failed to fetch gitignore template: $templates"
+        return
+    }
+
+    $content | Set-Content -NoNewline -Path .gitignore
+    Write-Host '>>> Wrote .gitignore from Toptal gitignore API'
+}
+
+function Remove-GitFilesInteractive {
+    param([string[]]$ListArgs, [string]$Kind)
+
+    $rootDir = Get-GitRootDir
+    if (-not $rootDir) {
+        return
+    }
+
+    $files = @(& git -C $rootDir @ListArgs)
+    if ($files.Count -eq 0) {
+        Write-Host "No ${Kind} files or directories found."
+        return
+    }
+
+    Write-Host "The following files/directories are ${Kind}:"
+    foreach ($f in $files) {
+        Write-Host $f -ForegroundColor Yellow
+    }
+
+    $answer = Read-Host "Do you want to delete all these ${Kind} files/directories? [y/N]"
+    if ($answer -match '^(?:[yY]|[yY][eE][sS])$') {
+        foreach ($f in $files) {
+            Remove-Item -LiteralPath (Join-Path $rootDir $f) -Recurse -Force
+        }
+        Write-Host 'Deletion completed.'
+    }
+    else {
+        Write-Host 'Operation cancelled.'
+    }
+}
+
+## interactively clean untracked files/directories
+function gcldi {
+    Remove-GitFilesInteractive -ListArgs @('ls-files', '--directory', '--others', '--exclude-standard') -Kind 'untracked'
+}
+
+## interactively clean git-ignored files/directories
+function gclii {
+    Remove-GitFilesInteractive -ListArgs @('ls-files', '--directory', '--others', '--ignored', '--exclude-standard') -Kind 'ignored'
 }
 
 function prenv {
