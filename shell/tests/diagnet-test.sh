@@ -100,16 +100,45 @@ pgrep() {
 [[ -z "$(inspect_mihomo)" ]] || fail "mihomo section appeared without a running process"
 unset -f pgrep
 
+# The dae config path is discovered from the effective unit command line.
+# shellcheck disable=SC2329
+systemctl() {
+    [[ "$1" == 'show' ]] || return 0
+    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /var/lib/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+}
+[[ "$(service_config_path dae.service)" == '/var/lib/dae/config.dae' ]] || fail "service_config_path did not parse -c PATH from ExecStart"
+# shellcheck disable=SC2329
+systemctl() {
+    [[ "$1" == 'show' ]] || return 0
+    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --config /var/lib/dae/long.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+}
+[[ "$(service_config_path dae.service)" == '/var/lib/dae/long.dae' ]] || fail "service_config_path did not parse --config PATH from ExecStart"
+# shellcheck disable=SC2329
+systemctl() {
+    [[ "$1" == 'show' ]] || return 0
+    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --config=/var/lib/dae/equals.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+}
+[[ "$(service_config_path dae.service)" == '/var/lib/dae/equals.dae' ]] || fail "service_config_path did not parse --config=PATH from ExecStart"
+# shellcheck disable=SC2329
+systemctl() { return 0; }
+if service_config_path dae.service; then
+    fail "service_config_path accepted an ExecStart without a config flag"
+fi
+unset -f systemctl
+
 # Proxy inbound values use the same blue highlighting as sing-box values.
 COLOR_ENABLED=true
 # shellcheck disable=SC2329
 pgrep() { return 0; }
 # shellcheck disable=SC2329
-print_service_status() { :; }
+systemctl() {
+    [[ "$1" == 'show' ]] || return 0
+    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+}
 # shellcheck disable=SC2329
 read_config_file() {
     case "$1" in
-        /run/secrets/dae-config.dae)
+        /run/dae/config.dae)
             printf 'global {\n    tproxy_port: 12345\n}\n'
             ;;
         /run/mihomo/config.yaml)
@@ -124,7 +153,7 @@ grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m 
 mihomo_highlighted="$(inspect_mihomo)"
 grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | listen \033[34m*\033[0m | port \033[34m7890\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo inbound values were not highlighted"
-unset -f pgrep print_service_status read_config_file
+unset -f pgrep print_service_status read_config_file systemctl
 COLOR_ENABLED=false
 
 TEST_ROOT="$(mktemp -d)"
@@ -167,7 +196,11 @@ EOF
 cat >"${MOCK_BIN}/systemctl" <<'EOF'
 #!/usr/bin/env bash
 echo "systemctl $*" >>"${DIAG_TEST_CALLS}"
-echo 'Active: active (running)'
+if [[ "$1" == 'show' ]]; then
+    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+else
+    echo 'Active: active (running)'
+fi
 EOF
 
 cat >"${MOCK_BIN}/sudo" <<'EOF'
@@ -181,8 +214,8 @@ if [[ "$1" == '-n' && "$2" == 'jq' ]]; then
     printf 'inbound\tmixed-in\tmixed\t::\t2334\n'
     exit 0
 fi
-if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/secrets/dae-config.dae' ]]; then
-    echo 'sudo -n cat /run/secrets/dae-config.dae' >>"${DIAG_TEST_CALLS}"
+if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/dae/config.dae' ]]; then
+    echo 'sudo -n cat /run/dae/config.dae' >>"${DIAG_TEST_CALLS}"
     printf 'global {\n    tproxy_port: 12345\n}\n'
     exit 0
 fi
@@ -214,8 +247,9 @@ sudo -n true
 sudo -n jq config
 pgrep -x dae
 systemctl status --no-pager --full --lines=0 dae.service
+systemctl show dae.service --property=ExecStart --value
 sudo -n true
-sudo -n cat /run/secrets/dae-config.dae
+sudo -n cat /run/dae/config.dae
 pgrep -x mihomo
 systemctl status --no-pager --full --lines=0 mihomo.service
 sudo -n true
@@ -245,6 +279,10 @@ fi
 
 if grep -Eq 'probe_ping|ping[[:space:]]+-4|inspect_proxy_process' "${SCRIPT}"; then
     fail "removed ping diagnostics are still present"
+fi
+
+if grep -Fq '/run/secrets/dae-config.dae' "${SCRIPT}"; then
+    fail "the stale dae secret-store config path is still referenced"
 fi
 
 if grep -Eq 'nmcli[[:space:]]+device[[:space:]]+(disconnect|delete)|ip[[:space:]]+route[[:space:]]+(add|del|replace)|systemctl[[:space:]]+(start|stop|restart)|sysctl[[:space:]]+-w' "${SCRIPT}"; then

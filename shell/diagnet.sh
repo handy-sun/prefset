@@ -44,7 +44,7 @@ Optional programs:
 
 Proxy config paths checked:
   sing-box: /run/sing-box/config.json
-  dae: /run/secrets/dae-config.dae, /etc/dae/config.dae
+  dae: the -c argument of dae.service ExecStart, /etc/dae/config.dae as fallback
   mihomo: /run/mihomo/config.yaml, /etc/mihomo/config.yaml, /var/lib/mihomo/config.yaml
 EOF
 }
@@ -727,6 +727,41 @@ print_service_status() {
     systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 | grep -E 'Loaded:|Active:' || true
 }
 
+# Extract the config file path a service passes to its daemon (-c/--config)
+# from the effective (drop-in-merged) ExecStart command line.
+service_config_path() {
+    local unit_name="$1"
+    local exec_start candidate index
+    local -a argv
+
+    have_command systemctl || return 1
+    exec_start="$(
+        systemctl show "${unit_name}" --property=ExecStart --value 2>/dev/null |
+            sed -n 's/.*argv\[\]=//p'
+    )" || exec_start=""
+    exec_start="${exec_start%% \; *}"
+
+    read -r -a argv <<<"${exec_start}"
+    for ((index = 0; index < ${#argv[@]}; index += 1)); do
+        case "${argv[index]}" in
+            -c|--config)
+                candidate="${argv[index + 1]:-}"
+                ;;
+            -c=*|--config=*)
+                candidate="${argv[index]#*=}"
+                ;;
+            *)
+                continue
+                ;;
+        esac
+        if [[ "${candidate}" == /* ]]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
 read_config_file() {
     local config_path
 
@@ -743,7 +778,8 @@ read_config_file() {
 }
 
 inspect_dae() {
-    local config_path="/run/secrets/dae-config.dae"
+    local config_path="/etc/dae/config.dae"
+    local unit_config_path
     local config_summary
     local tproxy_port
 
@@ -758,7 +794,11 @@ inspect_dae() {
         printf 'Service status: unavailable (systemctl is not installed).\n'
     fi
 
-    if ! config_summary="$(read_config_file "${config_path}" /etc/dae/config.dae)"; then
+    if unit_config_path="$(service_config_path dae.service)"; then
+        config_path="${unit_config_path}"
+    fi
+
+    if ! config_summary="$(read_config_file "${config_path}")"; then
         printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
         return 0
     fi
@@ -779,7 +819,6 @@ inspect_mihomo() {
     local config_path="/run/mihomo/config.yaml"
     local config_summary
     local bind_address
-    local kind port type
 
     if ! pgrep -x mihomo >/dev/null 2>&1; then
         return 0
