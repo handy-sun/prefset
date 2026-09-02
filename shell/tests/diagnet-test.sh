@@ -126,6 +126,22 @@ if service_config_path dae.service; then
 fi
 unset -f systemctl
 
+
+# The running state is green, and stays plain when color is disabled.
+COLOR_ENABLED=true
+# shellcheck disable=SC2329
+systemctl() {
+    printf '     Loaded: loaded (/etc/systemd/system/dae.service; enabled)\n     Active: active (running) since Wed 2026-09-02 15:43:49 CST; 1h 52min left\n'
+}
+status_output="$(print_service_status dae.service)"
+grep -Fq $'\033[32mactive (running)\033[0m' <<<"${status_output}" || fail "active (running) is not highlighted green"
+COLOR_ENABLED=false
+status_output="$(print_service_status dae.service)"
+grep -Fq 'Active: active (running)' <<<"${status_output}" || fail "plain service status lost the running state"
+if grep -Fq $'\033[32m' <<<"${status_output}"; then
+    fail "service status contains color while color is disabled"
+fi
+unset -f systemctl
 # Proxy inbound values use the same blue highlighting as sing-box values.
 COLOR_ENABLED=true
 # shellcheck disable=SC2329
@@ -142,7 +158,7 @@ read_config_file() {
             printf 'global {\n    tproxy_port: 12345\n}\n'
             ;;
         /run/mihomo/config.yaml)
-            printf 'bind-address: "*"\nmixed-port: 7890\n'
+            printf 'bind-address: "*"\nmixed-port: 7890\nexternal-controller: 0.0.0.0:9390\n'
             ;;
         *) return 1 ;;
     esac
@@ -153,6 +169,8 @@ grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m 
 mihomo_highlighted="$(inspect_mihomo)"
 grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | listen \033[34m*\033[0m | port \033[34m7890\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo inbound values were not highlighted"
+grep -Fq $'Controller: listen \033[34m0.0.0.0\033[0m | port \033[34m9390\033[0m' <<<"${mihomo_highlighted}" \
+    || fail "mihomo controller values were not highlighted"
 unset -f pgrep print_service_status read_config_file systemctl
 COLOR_ENABLED=false
 

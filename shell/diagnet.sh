@@ -724,7 +724,9 @@ print_service_status() {
     local unit_name="$1"
 
     printf 'Service status:\n'
-    systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 | grep -E 'Loaded:|Active:' || true
+    systemctl status --no-pager --full --lines=0 "${unit_name}" 2>&1 |
+        grep -E 'Loaded:|Active:' |
+        sed "s/active (running)/$(color_text 32 'active (running)')/" || true
 }
 
 # Extract the config file path a service passes to its daemon (-c/--config)
@@ -819,6 +821,7 @@ inspect_mihomo() {
     local config_path="/run/mihomo/config.yaml"
     local config_summary
     local bind_address
+    local controller
 
     if ! pgrep -x mihomo >/dev/null 2>&1; then
         return 0
@@ -855,7 +858,7 @@ inspect_mihomo() {
             "$(important_value "${port}")"
     done < <(awk -F: '/^(port|socks-port|redir-port|mixed-port|tproxy-port)[[:space:]]*:/ {key=$1; gsub(/[[:space:]]/, "", key); value=$2; gsub(/[[:space:]]/, "", value); print key "\t" value}' <<<"${config_summary}")
 
-    awk -F: '$1 ~ /^external-controller[[:space:]]*$/ {
+    controller="$(awk -F: '$1 ~ /^external-controller[[:space:]]*$/ {
         value=$2
         for (i = 3; i <= NF; i++) value=value ":" $i
         sub(/^[[:space:]]*/, "", value)
@@ -865,10 +868,15 @@ inspect_mihomo() {
         sub(/^.*:/, "", port)
         if (port ~ /^[0-9]+$/) {
             host=substr(value, 1, length(value)-length(port)-1)
-            printf "Controller: listen %s | port %s\n", host, port
+            printf "%s\t%s\n", host, port
         }
         exit
-    }' <<<"${config_summary}"
+    }' <<<"${config_summary}")"
+    if [[ -n "${controller}" ]]; then
+        printf 'Controller: listen %s | port %s\n' \
+            "$(important_value "${controller%$'\t'*}")" \
+            "$(important_value "${controller#*$'\t'}")"
+    fi
 }
 
 print_summary() {
