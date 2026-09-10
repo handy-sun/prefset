@@ -126,6 +126,39 @@ if service_config_path dae.service; then
 fi
 unset -f systemctl
 
+# sing-box inbounds are parsed without jq, pretty or minified, and nested
+# objects that reuse the tracked key names are ignored.
+pretty_json='{
+    "log": { "level": "info", "output": "/var/log/s{b}.log" },
+    "inbounds": [
+        {
+            "type": "mixed",
+            "tag": "mixed-in",
+            "listen": "::",
+            "listen_port": 2334,
+            "sniff": { "enabled": true, "dest_port": [80, 443] }
+        },
+        { "type": "tun", "tag": "tun-in" }
+    ],
+    "outbounds": [ { "type": "direct", "tag": "direct", "listen": "1.2.3.4", "listen_port": 999 } ]
+}'
+expected_tsv="$(printf 'inbound\tmixed-in\tmixed\t::\t2334\ninbound\ttun-in\ttun\t-\t-')"
+[[ "$(json_inbound_summary <<<"${pretty_json}")" == "${expected_tsv}" ]] ||
+    fail "json_inbound_summary mis-parsed pretty-printed JSON"
+
+minified_json='{"inbounds":[{"listen":"127.0.0.1","listen_port":1080,"tag":"s{ok}:1","type":"socks"}]}'
+expected_tsv="$(printf 'inbound\ts{ok}:1\tsocks\t127.0.0.1\t1080')"
+[[ "$(json_inbound_summary <<<"${minified_json}")" == "${expected_tsv}" ]] ||
+    fail "json_inbound_summary mis-parsed minified JSON"
+
+escaped_json='{"inbounds":[{"type":"mixed","tag":"quote\"tag","listen":"0.0.0.0","listen_port":1}]}'
+expected_tsv="$(printf 'inbound\tquote"tag\tmixed\t0.0.0.0\t1')"
+[[ "$(json_inbound_summary <<<"${escaped_json}")" == "${expected_tsv}" ]] ||
+    fail "json_inbound_summary mis-parsed escaped quotes"
+
+[[ -z "$(json_inbound_summary <<<'{"log":{"level":"warn"}}')" ]] ||
+    fail "json_inbound_summary invented inbounds"
+
 
 # The running state is green, and stays plain when color is disabled.
 COLOR_ENABLED=true
@@ -149,11 +182,21 @@ pgrep() { return 0; }
 # shellcheck disable=SC2329
 systemctl() {
     [[ "$1" == 'show' ]] || return 0
-    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+    case "$2" in
+        sing-box.service)
+            echo '{ path=/usr/bin/sing-box ; argv[]=/usr/bin/sing-box run -D /run/sing-box -c /run/sing-box/config.json ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+            ;;
+        *)
+            echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+            ;;
+    esac
 }
 # shellcheck disable=SC2329
 read_config_file() {
     case "$1" in
+        /run/sing-box/config.json)
+            printf '{"log":{"level":"info"},"inbounds":[{"type":"mixed","tag":"mixed-in","listen":"::","listen_port":2334,"sniff":{"enabled":true}}],"outbounds":[{"type":"direct","tag":"direct"}]}'
+            ;;
         /run/dae/config.dae)
             printf 'global {\n    tproxy_port: 12345\n}\n'
             ;;
@@ -163,6 +206,9 @@ read_config_file() {
         *) return 1 ;;
     esac
 }
+sing_box_highlighted="$(inspect_sing_box)"
+grep -Fq $'Inbound: tag \033[34mmixed-in\033[0m | type \033[34mmixed\033[0m | listen \033[34m::\033[0m | port \033[34m2334\033[0m' <<<"${sing_box_highlighted}" \
+    || fail "sing-box inbound values were not highlighted"
 dae_highlighted="$(inspect_dae)"
 grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12345\033[0m' <<<"${dae_highlighted}" \
     || fail "dae inbound values were not highlighted"
@@ -171,8 +217,20 @@ grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | 
     || fail "mihomo inbound values were not highlighted"
 grep -Fq $'Controller: listen \033[34m0.0.0.0\033[0m | port \033[34m9390\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo controller values were not highlighted"
-unset -f pgrep print_service_status read_config_file systemctl
+unset -f pgrep read_config_file systemctl
 COLOR_ENABLED=false
+
+# When no sing-box config is readable, the first candidate path is reported.
+# shellcheck disable=SC2329
+pgrep() { return 0; }
+# shellcheck disable=SC2329
+systemctl() { return 1; }
+# shellcheck disable=SC2329
+read_config_file() { return 1; }
+sing_box_unreadable="$(inspect_sing_box)"
+grep -Fq 'Inbound: unavailable (/run/sing-box/config.json is not readable).' <<<"${sing_box_unreadable}" ||
+    fail "an unreadable sing-box config was not reported with its path"
+unset -f pgrep systemctl read_config_file
 
 TEST_ROOT="$(mktemp -d)"
 MOCK_BIN="${TEST_ROOT}/bin"
@@ -215,7 +273,11 @@ cat >"${MOCK_BIN}/systemctl" <<'EOF'
 #!/usr/bin/env bash
 echo "systemctl $*" >>"${DIAG_TEST_CALLS}"
 if [[ "$1" == 'show' ]]; then
-    echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+    if [[ "$2" == 'sing-box.service' ]]; then
+        echo '{ path=/usr/bin/sing-box ; argv[]=/usr/bin/sing-box run -D /run/sing-box -c /run/sing-box/config.json ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+    else
+        echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+    fi
 else
     echo 'Active: active (running)'
 fi
@@ -227,9 +289,9 @@ if [[ "$*" == '-n true' ]]; then
     echo 'sudo -n true' >>"${DIAG_TEST_CALLS}"
     exit 0
 fi
-if [[ "$1" == '-n' && "$2" == 'jq' ]]; then
-    echo 'sudo -n jq config' >>"${DIAG_TEST_CALLS}"
-    printf 'inbound\tmixed-in\tmixed\t::\t2334\n'
+if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/sing-box/config.json' ]]; then
+    echo 'sudo -n cat /run/sing-box/config.json' >>"${DIAG_TEST_CALLS}"
+    printf '{"log":{"level":"info"},"inbounds":[{"type":"mixed","tag":"mixed-in","listen":"::","listen_port":2334,"sniff":{"enabled":true}}],"outbounds":[{"type":"direct","tag":"direct"}]}'
     exit 0
 fi
 if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/dae/config.dae' ]]; then
@@ -261,8 +323,9 @@ curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null 
 curl --noproxy * --ipv4 --interface lo --silent --show-error --output /dev/null --connect-timeout 1 --max-time 4 --write-out HTTP %{http_code}, local %{local_ip}, connect %{time_connect}s, TLS %{time_appconnect}s https://www.google.com/
 pgrep -x sing-box
 systemctl status --no-pager --full --lines=0 sing-box.service
+systemctl show sing-box.service --property=ExecStart --value
 sudo -n true
-sudo -n jq config
+sudo -n cat /run/sing-box/config.json
 pgrep -x dae
 systemctl status --no-pager --full --lines=0 dae.service
 systemctl show dae.service --property=ExecStart --value
@@ -301,6 +364,10 @@ fi
 
 if grep -Fq '/run/secrets/dae-config.dae' "${SCRIPT}"; then
     fail "the stale dae secret-store config path is still referenced"
+fi
+
+if grep -Fq 'jq' "${SCRIPT}"; then
+    fail "jq is still referenced by the script"
 fi
 
 if grep -Eq 'nmcli[[:space:]]+device[[:space:]]+(disconnect|delete)|ip[[:space:]]+route[[:space:]]+(add|del|replace)|systemctl[[:space:]]+(start|stop|restart)|sysctl[[:space:]]+-w' "${SCRIPT}"; then

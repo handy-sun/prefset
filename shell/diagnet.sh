@@ -36,14 +36,15 @@ The script does not disconnect interfaces, change routes, or restart services.
 Network failures are reported as findings and do not change the exit status.
 
 Required programs:
-  Linux: uname, ip, getent, curl, pgrep, awk, grep, sort, paste, tr, cat
-  macOS: uname, ifconfig, netstat, dscacheutil, curl, pgrep, awk, grep, sort, paste, tr, cat
+  Linux: uname, ip, getent, curl, pgrep, awk, grep, sed, sort, paste, tr, cat
+  macOS: uname, ifconfig, netstat, dscacheutil, curl, pgrep, awk, grep, sed, sort, paste, tr, cat
 Optional programs:
-  jq (sing-box inbound details), sudo (read root-owned proxy configs),
+  sudo (read root-owned proxy configs),
   systemctl, nmcli, ethtool (platform-specific extra details)
 
 Proxy config paths checked:
-  sing-box: /run/sing-box/config.json
+  sing-box: the -c argument of sing-box.service ExecStart,
+            /run/sing-box/config.json and /etc/sing-box/config.json as fallbacks
   dae: the -c argument of dae.service ExecStart, /etc/dae/config.dae as fallback
   mihomo: /run/mihomo/config.yaml, /etc/mihomo/config.yaml, /var/lib/mihomo/config.yaml
 EOF
@@ -219,8 +220,8 @@ require_commands() {
 
     PLATFORM="$(uname -s 2>/dev/null || printf unknown)"
     case "${PLATFORM}" in
-        Linux) REQUIRED_COMMANDS=(uname ip getent curl pgrep awk grep sort paste tr cat) ;;
-        Darwin) REQUIRED_COMMANDS=(uname ifconfig netstat dscacheutil curl pgrep awk grep sort paste tr cat) ;;
+        Linux) REQUIRED_COMMANDS=(uname ip getent curl pgrep awk grep sed sort paste tr cat) ;;
+        Darwin) REQUIRED_COMMANDS=(uname ifconfig netstat dscacheutil curl pgrep awk grep sed sort paste tr cat) ;;
         *)
             echo "Error: unsupported platform: ${PLATFORM}" >&2
             return 2
@@ -656,11 +657,139 @@ check_shared_networks() {
     fi
 }
 
+# Print one TSV line (inbound, tag, type, listen, listen_port) per sing-box
+# inbound, reading JSON from stdin. A tiny depth-tracking tokenizer replaces
+# the external JSON parser: it accepts pretty-printed and minified layouts,
+# skips nested objects that reuse the tracked key names, and stays
+# mawk-compatible.
+json_inbound_summary() {
+    awk '
+        BEGIN { inbounds_depth = -1 }
+
+        function capture(key, value) {
+            if (!in_capture || depth != inbounds_depth + 1) {
+                return
+            }
+            if (key == "tag") {
+                cap_tag = value
+            } else if (key == "type") {
+                cap_type = value
+            } else if (key == "listen") {
+                cap_listen = value
+            } else if (key == "listen_port") {
+                cap_port = value
+            }
+        }
+
+        function token(kind, value) {
+            if (kind != "[" && expect_inbounds) {
+                expect_inbounds = 0
+            }
+            if (kind == "s") {
+                if (current_key != "") {
+                    capture(current_key, value)
+                    current_key = ""
+                }
+                pending_string = value
+                return
+            }
+            if (kind == ":") {
+                current_key = pending_string
+                if (current_key == "inbounds" && depth == 1) {
+                    expect_inbounds = 1
+                }
+                return
+            }
+            if (kind == "{" || kind == "[") {
+                depth++
+                if (kind == "[") {
+                    if (expect_inbounds) {
+                        inbounds_depth = depth
+                        expect_inbounds = 0
+                    }
+                } else if (inbounds_depth > 0 && depth == inbounds_depth + 1 && !in_capture) {
+                    cap_tag = "-"
+                    cap_type = "-"
+                    cap_listen = "-"
+                    cap_port = "-"
+                    in_capture = 1
+                }
+                current_key = ""
+                return
+            }
+            if (kind == "}" || kind == "]") {
+                depth--
+                if (kind == "}" && in_capture && depth == inbounds_depth) {
+                    printf "inbound\t%s\t%s\t%s\t%s\n", cap_tag, cap_type, cap_listen, cap_port
+                    in_capture = 0
+                } else if (kind == "]" && inbounds_depth > 0 && depth == inbounds_depth - 1) {
+                    inbounds_depth = -1
+                }
+                current_key = ""
+                return
+            }
+            # kind == "v": a bare number, true, false, or null value.
+            if (current_key != "") {
+                capture(current_key, value)
+                current_key = ""
+            }
+        }
+
+        {
+            line = $0
+            line_length = length(line)
+            pos = 1
+            while (pos <= line_length) {
+                char = substr(line, pos, 1)
+                if (char == "\"") {
+                    pos++
+                    value = ""
+                    while (pos <= line_length) {
+                        char = substr(line, pos, 1)
+                        if (char == "\\" && pos < line_length) {
+                            value = value substr(line, pos + 1, 1)
+                            pos += 2
+                            continue
+                        }
+                        if (char == "\"") {
+                            pos++
+                            break
+                        }
+                        value = value char
+                        pos++
+                    }
+                    token("s", value)
+                    continue
+                }
+                if (char == "{" || char == "}" || char == "[" || char == "]" || char == ":" || char == ",") {
+                    pos++
+                    token(char, "")
+                    continue
+                }
+                if (char == " " || char == "\t" || char == "\r") {
+                    pos++
+                    continue
+                }
+                start = pos
+                while (pos <= line_length) {
+                    char = substr(line, pos, 1)
+                    if (char == "," || char == "}" || char == "]" || char == ":" || char == " " || char == "\t" || char == "\r") {
+                        break
+                    }
+                    pos++
+                }
+                token("v", substr(line, start, pos - start))
+            }
+        }
+    '
+}
+
 inspect_sing_box() {
     local unit_name="sing-box.service"
-    local config_path="/run/sing-box/config.json"
-    local config_summary=""
-    local jq_filter
+    local unit_config_path
+    local -a config_paths=(/run/sing-box/config.json /etc/sing-box/config.json)
+    local config_json
+    local config_summary
     local kind field1 field2 field3 field4
     local inbound_count=0
 
@@ -675,27 +804,16 @@ inspect_sing_box() {
         printf 'Service status: unavailable (systemctl is not installed).\n'
     fi
 
-    if ! have_command jq; then
-        printf 'Inbound: unavailable (jq is not installed).\n'
+    if unit_config_path="$(service_config_path "${unit_name}")"; then
+        config_paths=("${unit_config_path}" "${config_paths[@]}")
+    fi
+
+    if ! config_json="$(read_config_file "${config_paths[@]}")"; then
+        printf 'Inbound: unavailable (%s is not readable).\n' "${config_paths[0]}"
         return 0
     fi
 
-    jq_filter='.inbounds[]? | ([
-            "inbound",
-            (.tag // "-"),
-            (.type // "-"),
-            (.listen // "-"),
-            ((.listen_port // "-") | tostring)
-        ] | @tsv)'
-
-    if [[ -r "${config_path}" ]]; then
-        config_summary="$(jq -r "${jq_filter}" "${config_path}" 2>/dev/null || true)"
-    elif have_command sudo && sudo -n true 2>/dev/null; then
-        config_summary="$(sudo -n jq -r "${jq_filter}" "${config_path}" 2>/dev/null || true)"
-    else
-        printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
-        return 0
-    fi
+    config_summary="$(json_inbound_summary <<<"${config_json}")"
 
     if [[ -z "${config_summary}" ]]; then
         printf 'Inbound: none configured or configuration could not be read.\n'
