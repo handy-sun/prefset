@@ -2,9 +2,9 @@
 ## runlike.sh — Reconstruct the docker run command from a running container
 ## Usage: ./runlike.sh [OPTIONS] CONTAINER...
 set -euo pipefail
-
 ENGINE=""
 ALL=false
+SHOW_LABELS=false
 TARGETS=()
 
 print_help() {
@@ -18,11 +18,12 @@ Usage:
 Options:
   --engine BIN   Container CLI to use. Default: docker, or podman if docker is missing.
   -a, --all      Process every container, running and stopped.
-  -h, --help     Show this help.
+  --label        Also emit --label options. They are hidden by default.
 
 Only container settings that differ from the image defaults are emitted, so the
 output stays close to what was originally typed on the command line. Options the
 engine cannot report back (such as --rm or build-time only flags) are lost.
+Labels are omitted unless --label is given.
 
 Required programs: docker (or podman), jq
 EOF
@@ -97,10 +98,12 @@ $container as $c
 + ( ($c.Config.Env // []) | map(select(. as $e | ($ienv | index($e)) | not))
     | map("-e " + shq) )
 
-## Labels, minus the ones inherited from the image
-+ ( ($c.Config.Labels // {}) | to_entries
-    | map(select(. as $l | (($ilbl[$l.key]) // null) != $l.value))
-    | map("--label " + ((.key + "=" + .value) | shq)) )
+## Labels, minus the ones inherited from the image; only shown with --label
++ ( if $show_labels == "true"
+    then ($c.Config.Labels // {}) | to_entries
+      | map(select(. as $l | (($ilbl[$l.key]) // null) != $l.value))
+      | map("--label " + ((.key + "=" + .value) | shq))
+    else [] end )
 
 ## Other common settings
 + ( ($c.HostConfig.Sysctls // {}) | to_entries | map("--sysctl " + ((.key+"="+.value)|shq)) )
@@ -111,7 +114,7 @@ $container as $c
 + ( if ($c.HostConfig.NanoCpus // 0) > 0
     then ["--cpus " + ((($c.HostConfig.NanoCpus/1000000000)*1000|round)/1000|tostring)] else [] end )
 + ( ($c.HostConfig.LogConfig.Type // "") as $lt
-    | if ($lt == "") or ($lt == "json-file") then [] else ["--log-driver " + ($lt|shq)] end )
+    | if ($lt == "") or ($lt == "json-file") or ($lt == "journald") then [] else ["--log-driver " + ($lt|shq)] end )
 + ( if ($c.HostConfig.Runtime // "runc") == "runc" then [] else ["--runtime " + ($c.HostConfig.Runtime|shq)] end )
 + ( if ($c.Config.Tty // false) then ["-t"] else [] end )
 + ( if ($c.Config.OpenStdin // false) then ["-i"] else [] end )
@@ -145,6 +148,10 @@ parse_args() {
                 ;;
             -a|--all)
                 ALL=true
+                shift
+                ;;
+            --label)
+                SHOW_LABELS=true
                 shift
                 ;;
             -h|--help)
@@ -211,6 +218,7 @@ render_container() {
     jq -nr \
         --argjson container "${container_json}" \
         --argjson image "${image_json}" \
+        --arg show_labels "${SHOW_LABELS}" \
         "${JQ_PROGRAM}"
 }
 
