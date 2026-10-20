@@ -80,16 +80,16 @@ login() {
     case "$resp" in
         *'"success":true'*|*'"success": true'*)
             sleep 2
-            online && { echo "login ok: $USERNAME"; exit 0; }
-            echo "login accepted but probe failed: $resp"; exit 1 ;;
-        *) echo "login failed: $resp"; exit 1 ;;
+            online && { echo "[$(date '+%F %T')] login ok: $USERNAME"; exit 0; }
+            echo "[$(date '+%F %T')] login accepted but probe failed: $resp"; exit 1 ;;
+        *) echo "[$(date '+%F %T')] login failed: $resp"; exit 1 ;;
     esac
 }
 
 USERAGENT="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
 if online; then
-    echo "already online"
+    echo "[$(date '+%F %T')] already online"
     exit 0
 fi
 login
