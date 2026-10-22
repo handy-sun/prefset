@@ -46,6 +46,7 @@ Proxy config paths checked:
   sing-box: the -c argument of sing-box.service ExecStart,
             /run/sing-box/config.json and /etc/sing-box/config.json as fallbacks
   dae: the -c argument of dae.service ExecStart, /etc/dae/config.dae as fallback
+  honk-core: the --config argument of honk-core.service ExecStart, /etc/honk/honk-config.dae as fallback
   mihomo: /run/mihomo/config.yaml, /etc/mihomo/config.yaml, /var/lib/mihomo/config.yaml
 EOF
 }
@@ -935,6 +936,44 @@ inspect_dae() {
     fi
 }
 
+inspect_honk_core() {
+    local config_path="/etc/honk/honk-config.dae"
+    local unit_config_path
+    local config_summary
+    local tproxy_port
+
+    if ! pgrep -x honk-core >/dev/null 2>&1; then
+        return 0
+    fi
+
+    print_section "honk-core"
+    if have_command systemctl; then
+        print_service_status honk-core.service
+    else
+        printf 'Service status: unavailable (systemctl is not installed).\n'
+    fi
+
+    if unit_config_path="$(service_config_path honk-core.service)"; then
+        config_path="${unit_config_path}"
+    fi
+
+    if ! config_summary="$(read_config_file "${config_path}")"; then
+        printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
+        return 0
+    fi
+
+    tproxy_port="$(awk -F: '$1 ~ /^[[:space:]]*tproxy_port[[:space:]]*$/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' <<<"${config_summary}")"
+    if [[ "${tproxy_port}" =~ ^[0-9]+$ ]]; then
+        printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
+            "$(important_value 'tproxy-port')" \
+            "$(important_value 'tproxy')" \
+            "$(important_value '0.0.0.0')" \
+            "$(important_value "${tproxy_port}")"
+    else
+        printf 'Inbound: none configured.\n'
+    fi
+}
+
 inspect_mihomo() {
     local config_path="/run/mihomo/config.yaml"
     local config_summary
@@ -1084,6 +1123,7 @@ main() {
     check_shared_networks
     inspect_sing_box
     inspect_dae
+    inspect_honk_core
     inspect_mihomo
     print_summary
 

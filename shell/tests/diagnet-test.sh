@@ -97,6 +97,7 @@ pgrep() {
     return 1
 }
 [[ -z "$(inspect_dae)" ]] || fail "dae section appeared without a running process"
+[[ -z "$(inspect_honk_core)" ]] || fail "honk-core section appeared without a running process"
 [[ -z "$(inspect_mihomo)" ]] || fail "mihomo section appeared without a running process"
 unset -f pgrep
 
@@ -186,6 +187,9 @@ systemctl() {
         sing-box.service)
             echo '{ path=/usr/bin/sing-box ; argv[]=/usr/bin/sing-box run -D /run/sing-box -c /run/sing-box/config.json ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
             ;;
+        honk-core.service)
+            echo '{ path=/usr/bin/honk-core ; argv[]=/usr/bin/honk-core --disable-timestamp --config /run/honk/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+            ;;
         *)
             echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
             ;;
@@ -196,6 +200,9 @@ read_config_file() {
     case "$1" in
         /run/sing-box/config.json)
             printf '{"log":{"level":"info"},"inbounds":[{"type":"mixed","tag":"mixed-in","listen":"::","listen_port":2334,"sniff":{"enabled":true}}],"outbounds":[{"type":"direct","tag":"direct"}]}'
+            ;;
+        /run/honk/config.dae)
+            printf 'global {\n    tproxy_port: 12346\n}\n'
             ;;
         /run/dae/config.dae)
             printf 'global {\n    tproxy_port: 12345\n}\n'
@@ -212,6 +219,9 @@ grep -Fq $'Inbound: tag \033[34mmixed-in\033[0m | type \033[34mmixed\033[0m | li
 dae_highlighted="$(inspect_dae)"
 grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12345\033[0m' <<<"${dae_highlighted}" \
     || fail "dae inbound values were not highlighted"
+honk_core_highlighted="$(inspect_honk_core)"
+grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12346\033[0m' <<<"${honk_core_highlighted}" \
+    || fail "honk-core inbound values were not highlighted"
 mihomo_highlighted="$(inspect_mihomo)"
 grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | listen \033[34m*\033[0m | port \033[34m7890\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo inbound values were not highlighted"
@@ -262,7 +272,7 @@ EOF
 cat >"${MOCK_BIN}/pgrep" <<'EOF'
 #!/usr/bin/env bash
 echo "pgrep $*" >>"${DIAG_TEST_CALLS}"
-if [[ "$*" == '-x sing-box' || "$*" == '-x dae' || "$*" == '-x mihomo' ]]; then
+if [[ "$*" == '-x sing-box' || "$*" == '-x dae' || "$*" == '-x honk-core' || "$*" == '-x mihomo' ]]; then
     echo 4242
     exit 0
 fi
@@ -275,6 +285,8 @@ echo "systemctl $*" >>"${DIAG_TEST_CALLS}"
 if [[ "$1" == 'show' ]]; then
     if [[ "$2" == 'sing-box.service' ]]; then
         echo '{ path=/usr/bin/sing-box ; argv[]=/usr/bin/sing-box run -D /run/sing-box -c /run/sing-box/config.json ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
+    elif [[ "$2" == 'honk-core.service' ]]; then
+        echo '{ path=/usr/bin/honk-core ; argv[]=/usr/bin/honk-core --disable-timestamp --config /run/honk/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
     else
         echo '{ path=/usr/bin/dae ; argv[]=/usr/bin/dae run --disable-timestamp -c /run/dae/config.dae ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }'
     fi
@@ -292,6 +304,11 @@ fi
 if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/sing-box/config.json' ]]; then
     echo 'sudo -n cat /run/sing-box/config.json' >>"${DIAG_TEST_CALLS}"
     printf '{"log":{"level":"info"},"inbounds":[{"type":"mixed","tag":"mixed-in","listen":"::","listen_port":2334,"sniff":{"enabled":true}}],"outbounds":[{"type":"direct","tag":"direct"}]}'
+    exit 0
+fi
+if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/honk/config.dae' ]]; then
+    echo 'sudo -n cat /run/honk/config.dae' >>"${DIAG_TEST_CALLS}"
+    printf 'global {\n    tproxy_port: 12346\n}\n'
     exit 0
 fi
 if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/dae/config.dae' ]]; then
@@ -331,6 +348,11 @@ systemctl status --no-pager --full --lines=0 dae.service
 systemctl show dae.service --property=ExecStart --value
 sudo -n true
 sudo -n cat /run/dae/config.dae
+pgrep -x honk-core
+systemctl status --no-pager --full --lines=0 honk-core.service
+systemctl show honk-core.service --property=ExecStart --value
+sudo -n true
+sudo -n cat /run/honk/config.dae
 pgrep -x mihomo
 systemctl status --no-pager --full --lines=0 mihomo.service
 sudo -n true
@@ -349,6 +371,8 @@ grep -Fq 'Active: active (running)' "${TEST_ROOT}/output" || fail "sing-box stat
 grep -Fq 'Inbound: tag mixed-in | type mixed | listen :: | port 2334' "${TEST_ROOT}/output" || fail "sing-box inbound port was not printed"
 grep -Fq '── dae ──' "${TEST_ROOT}/output" || fail "dae status section was not printed"
 grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port 12345' "${TEST_ROOT}/output" || fail "dae inbound port was not printed"
+grep -Fq '── honk-core ──' "${TEST_ROOT}/output" || fail "honk-core status section was not printed"
+grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port 12346' "${TEST_ROOT}/output" || fail "honk-core inbound port was not printed"
 grep -Fq '── mihomo ──' "${TEST_ROOT}/output" || fail "mihomo status section was not printed"
 grep -Fq 'Inbound: tag mixed-port | type mixed | listen * | port 7890' "${TEST_ROOT}/output" || fail "mihomo mixed port was not printed"
 grep -Fq 'Inbound: tag redir-port | type redir | listen * | port 7891' "${TEST_ROOT}/output" || fail "mihomo redir port was not printed"
