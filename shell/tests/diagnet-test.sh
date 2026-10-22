@@ -86,6 +86,25 @@ map_set HTTPS_RESULT_NAMES HTTPS_RESULT_VALUES eth0 fail
 summary="$(print_summary)"
 grep -Fq 'FAIL:' <<<"${summary}" || fail "failed HTTPS path is not diagnosed as FAIL"
 
+# Name lookups run under a wall-clock budget, with and without timeout(1).
+[[ "$(run_with_timeout 5 echo fast)" == 'fast' ]] || fail "run_with_timeout lost command output"
+if run_with_timeout 1 sleep 5 >/dev/null 2>&1; then
+    fail "run_with_timeout let a sleeping command outlive its budget"
+fi
+# shellcheck disable=SC2329
+have_command() {
+    [[ "$1" == timeout ]] && return 1
+    command -v "$1" >/dev/null 2>&1
+}
+[[ "$(run_with_timeout 5 echo fallback)" == 'fallback' ]] || fail "run_with_timeout fallback lost command output"
+if run_with_timeout 1 sleep 5 >/dev/null 2>&1; then
+    fail "run_with_timeout fallback let a sleeping command outlive its budget"
+fi
+# Restore the real implementation the mock replaced.
+have_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Called indirectly by inspect_sing_box.
 # shellcheck disable=SC2329
 pgrep() {

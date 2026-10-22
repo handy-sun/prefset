@@ -4,6 +4,7 @@
 set -euo pipefail
 
 TIMEOUT=4
+DNS_TIMEOUT=5
 GATEWAY_OVERRIDE=""
 VERBOSE=false
 COLOR_ENABLED=false
@@ -241,6 +242,34 @@ require_commands() {
 
 have_command() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Run a command under a wall-clock budget in seconds. Uses timeout(1) when
+# installed and a background watcher otherwise, so a lookup cannot hang on
+# an unreachable resolver.
+run_with_timeout() {
+    local seconds="$1"
+    shift
+    local command_pid watcher_pid
+    local status=0
+
+    if have_command timeout; then
+        timeout "${seconds}" "$@"
+        return
+    fi
+
+    # No timeout(1) (e.g. macOS): race the command against a killer process.
+    "$@" &
+    command_pid=$!
+    {
+        sleep "${seconds}"
+        kill "${command_pid}" 2>/dev/null
+    } &
+    watcher_pid=$!
+    wait "${command_pid}" || status=$?
+    kill "${watcher_pid}" 2>/dev/null || true
+    wait "${watcher_pid}" 2>/dev/null || true
+    return "${status}"
 }
 
 map_set() {
@@ -562,12 +591,12 @@ probe_dns() {
     local addresses
 
     if [[ "${PLATFORM}" == Darwin ]]; then
-        if output="$(dscacheutil -q host -a name "${target}" 2>&1)"; then
+        if output="$(run_with_timeout "${DNS_TIMEOUT}" dscacheutil -q host -a name "${target}" 2>&1)"; then
             addresses="$(awk '$1 == "ip_address:" && $2 ~ /^[0-9.]+$/ {print $2}' <<<"${output}" | sort -u | paste -sd, -)"
         else
             addresses=""
         fi
-    elif output="$(getent ahostsv4 "${target}" 2>&1)"; then
+    elif output="$(run_with_timeout "${DNS_TIMEOUT}" getent ahostsv4 "${target}" 2>&1)"; then
         addresses="$(awk '{print $1}' <<<"${output}" | sort -u | paste -sd, -)"
     else
         addresses=""
