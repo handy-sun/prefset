@@ -12,6 +12,10 @@ PLATFORM=""
 INTERFACES=()
 DEFAULT_ROUTES=()
 TEST_SITES=(www.baidu.com www.youtube.com grok.com www.google.com)
+# AliDNS and Google public DNS, pinged with large packets before name resolution.
+DIRECT_DNS_SERVERS=(223.5.5.5 8.8.8.8)
+DIRECT_PING_COUNT=4
+DIRECT_PING_SIZE=1400
 HTTPS_RESULT_NAMES=()
 HTTPS_RESULT_VALUES=()
 INTERFACE_GATEWAY_NAMES=()
@@ -612,6 +616,53 @@ probe_dns() {
     return 1
 }
 
+probe_direct_ping() {
+    local target="$1"
+    local output
+    local loss avg
+    local -a ping_args=(ping -c "${DIRECT_PING_COUNT}" -s "${DIRECT_PING_SIZE}")
+
+    if ! have_command ping; then
+        record_result WARN "ICMP ${target}: unavailable (ping is not installed)."
+        return 0
+    fi
+
+    # A 100%-loss ping lingers for late replies beyond the sent packets, and
+    # buffered output is lost if an outer killer fires first. Give ping its
+    # own deadline (-w on Linux, -t on macOS) so it exits and flushes inside
+    # the outer wall-clock budget.
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        ping_args+=(-t "$((TIMEOUT + 4))")
+    else
+        ping_args+=(-w "$((TIMEOUT + 4))")
+    fi
+    ping_args+=("${target}")
+
+    # LC_ALL=C keeps the statistics lines parseable regardless of locale.
+    if ! output="$(LC_ALL=C run_with_timeout "$((TIMEOUT + 6))" "${ping_args[@]}" 2>&1)"; then
+        output="${output//$'\n'/ }"
+        record_result FAIL "ICMP ${target}: ${output:-no reply}."
+        return 1
+    fi
+
+    loss="$(awk '/packets? transmitted/ {for (i = 1; i <= NF; i++) if ($i ~ /^[0-9.]+%$/) {print $i; exit}}' <<<"${output}")"
+    avg="$(awk '/^(rtt|round-trip) / {sub(/.*= */, ""); split($0, parts, "/"); print parts[2]; exit}' <<<"${output}")"
+
+    if [[ -n "${loss}" && -n "${avg}" ]]; then
+        if [[ "${loss}" =~ ^0+([.]0+)?%$ ]]; then
+            record_result PASS "ICMP ${target}: ${loss} loss, avg ${avg} ms."
+        else
+            record_result WARN "ICMP ${target}: ${loss} loss, avg ${avg} ms."
+        fi
+        verbose_printf '  ICMP detail:\n%s\n' "${output}"
+        return 0
+    fi
+
+    record_result WARN "ICMP ${target}: completed; statistics could not be parsed."
+    verbose_printf '  ICMP detail:\n%s\n' "${output}"
+    return 0
+}
+
 probe_https() {
     local interface_name="$1"
     local target="$2"
@@ -1135,6 +1186,11 @@ main() {
     for interface_name in "${INTERFACES[@]}"; do
         print_section "Interface ${interface_name}"
         print_interface_details "${interface_name}"
+    done
+
+    print_section "Direct DNS ping"
+    for target in "${DIRECT_DNS_SERVERS[@]}"; do
+        probe_direct_ping "${target}" || true
     done
 
     print_section "DNS resolution"

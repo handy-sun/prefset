@@ -101,9 +101,63 @@ if run_with_timeout 1 sleep 5 >/dev/null 2>&1; then
     fail "run_with_timeout fallback let a sleeping command outlive its budget"
 fi
 # Restore the real implementation the mock replaced.
+# shellcheck disable=SC2329
 have_command() {
     command -v "$1" >/dev/null 2>&1
 }
+
+# Direct DNS pings report loss and average RTT from the ping statistics.
+# Without timeout(1) the probes run through the watcher fallback, so the
+# ping shell function is honored here.
+# shellcheck disable=SC2329
+have_command() {
+    [[ "$1" == timeout ]] && return 1
+    command -v "$1" >/dev/null 2>&1
+}
+# shellcheck disable=SC2329
+ping() {
+    printf 'PING 223.5.5.5: 1400 data bytes\n--- ping statistics ---\n4 packets transmitted, 4 received, 0%% packet loss, time 3004ms\nrtt min/avg/max/mdev = 0.033/0.042/0.061/0.008 ms\n'
+}
+direct_ping_output="$(probe_direct_ping 223.5.5.5)"
+grep -Fq 'PASS: ICMP 223.5.5.5: 0% loss, avg 0.042 ms.' <<<"${direct_ping_output}" ||
+    fail "a lossless direct ping was not reported as PASS"
+# shellcheck disable=SC2329
+ping() {
+    printf '4 packets transmitted, 4 packets received, 0.0%% packet loss\nround-trip min/avg/max/stddev = 12.342/13.057/14.511/1.024 ms\n'
+}
+direct_ping_output="$(probe_direct_ping 223.5.5.5)"
+grep -Fq 'PASS: ICMP 223.5.5.5: 0.0% loss, avg 13.057 ms.' <<<"${direct_ping_output}" ||
+    fail "macOS-style ping statistics were not reported as PASS"
+# shellcheck disable=SC2329
+ping() {
+    printf '4 packets transmitted, 2 received, 50%% packet loss, time 3004ms\nrtt min/avg/max/mdev = 12.1/13.3/15.9/1.2 ms\n'
+}
+direct_ping_output="$(probe_direct_ping 223.5.5.5)"
+grep -Fq 'WARN: ICMP 223.5.5.5: 50% loss, avg 13.3 ms.' <<<"${direct_ping_output}" ||
+    fail "a lossy direct ping was not reported as WARN"
+# shellcheck disable=SC2329
+ping() {
+    printf 'PING 8.8.8.8: 1400 data bytes\n--- ping statistics ---\n4 packets transmitted, 0 received, 100%% packet loss, time 2999ms\n'
+    return 1
+}
+direct_ping_output="$(probe_direct_ping 8.8.8.8)" || true
+grep -Fq 'FAIL: ICMP 8.8.8.8:' <<<"${direct_ping_output}" ||
+    fail "an unanswered direct ping was not reported as FAIL"
+# shellcheck disable=SC2329
+have_command() {
+    case "$1" in
+        ping | timeout) return 1 ;;
+    esac
+    command -v "$1" >/dev/null 2>&1
+}
+direct_ping_output="$(probe_direct_ping 223.5.5.5)"
+grep -Fq 'WARN: ICMP 223.5.5.5: unavailable (ping is not installed).' <<<"${direct_ping_output}" ||
+    fail "a missing ping binary was not reported"
+# Restore the real implementation the mock replaced.
+have_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+unset -f ping
 
 # Called indirectly by inspect_sing_box.
 # shellcheck disable=SC2329
@@ -276,6 +330,16 @@ elif [[ "$*" == '-o -4 address show dev lo scope global' ]]; then
 fi
 EOF
 
+cat >"${MOCK_BIN}/ping" <<'EOF'
+#!/usr/bin/env bash
+echo "ping $*" >>"${DIAG_TEST_CALLS}"
+if [[ "$*" == *' 223.5.5.5' ]]; then
+    printf 'PING 223.5.5.5 (223.5.5.5) 1400(1428) bytes of data.\n--- 223.5.5.5 ping statistics ---\n4 packets transmitted, 4 received, 0%% packet loss, time 3004ms\nrtt min/avg/max/mdev = 0.033/0.042/0.061/0.008 ms\n'
+else
+    printf 'PING 8.8.8.8 (8.8.8.8) 1400(1428) bytes of data.\n--- 8.8.8.8 ping statistics ---\n4 packets transmitted, 3 received, 25%% packet loss, time 3005ms\nrtt min/avg/max/mdev = 12.101/13.302/15.905/1.204 ms\n'
+fi
+EOF
+
 cat >"${MOCK_BIN}/getent" <<'EOF'
 #!/usr/bin/env bash
 echo "getent $*" >>"${DIAG_TEST_CALLS}"
@@ -349,6 +413,8 @@ DIAG_TEST_CALLS="${CALLS}" PATH="${MOCK_BIN}:${PATH}" \
     "${SCRIPT}" --interface lo --timeout 1 >"${TEST_ROOT}/output"
 
 expected_calls=$(cat <<'EOF'
+ping -c 4 -s 1400 -w 5 223.5.5.5
+ping -c 4 -s 1400 -w 5 8.8.8.8
 getent ahostsv4 www.baidu.com
 getent ahostsv4 www.youtube.com
 getent ahostsv4 grok.com
@@ -384,6 +450,8 @@ EOF
     fail "network probes or proxy diagnostics ran in the wrong order"
 }
 
+grep -Fq 'PASS: ICMP 223.5.5.5: 0% loss, avg 0.042 ms.' "${TEST_ROOT}/output" || fail "lossless AliDNS ping was not reported"
+grep -Fq 'WARN: ICMP 8.8.8.8: 25% loss, avg 13.302 ms.' "${TEST_ROOT}/output" || fail "lossy Google DNS ping was not reported"
 grep -Fq 'DNS www.baidu.com' "${TEST_ROOT}/output" || fail "DNS result for www.baidu.com was not printed"
 grep -Fq 'DNS www.google.com' "${TEST_ROOT}/output" || fail "DNS result for www.google.com was not printed"
 grep -Fq 'Active: active (running)' "${TEST_ROOT}/output" || fail "sing-box status was not printed"
@@ -466,6 +534,12 @@ ip_address: 192.0.2.53
 DNS
 EOF
 
+cat >"${MAC_MOCK_BIN}/ping" <<'EOF'
+#!/usr/bin/env bash
+echo "ping $*" >>"${DIAG_TEST_CALLS}"
+printf 'PING 223.5.5.5 (223.5.5.5): 1400 data bytes\n--- ping statistics ---\n4 packets transmitted, 4 packets received, 0.0%% packet loss\nround-trip min/avg/max/stddev = 12.342/13.057/14.511/1.024 ms\n'
+EOF
+
 cat >"${MAC_MOCK_BIN}/curl" <<'EOF'
 #!/usr/bin/env bash
 echo "curl $*" >>"${DIAG_TEST_CALLS}"
@@ -485,6 +559,7 @@ DIAG_TEST_CALLS="${MAC_CALLS}" PATH="${MAC_MOCK_BIN}:${PATH}" \
 
 grep -Fq 'Default: en0 via 192.0.2.1' "${MAC_TEST_ROOT}/output" || fail "macOS default route was not diagnosed"
 grep -Fq 'en0  IPv4 192.0.2.10/24 | gateway 192.0.2.1 | carrier yes | speed 1000 Mbps' "${MAC_TEST_ROOT}/output" || { sed -n '1,80p' "${MAC_TEST_ROOT}/output" >&2; fail "macOS interface details were not diagnosed"; }
+grep -Fq 'PASS: ICMP 223.5.5.5: 0.0% loss, avg 13.057 ms.' "${MAC_TEST_ROOT}/output" || fail "macOS direct ping was not diagnosed"
 grep -Fq 'DNS www.baidu.com: 192.0.2.53.' "${MAC_TEST_ROOT}/output" || fail "macOS DNS resolution was not diagnosed"
 grep -Fq 'en0 HTTPS www.baidu.com: HTTP 200' "${MAC_TEST_ROOT}/output" || fail "macOS HTTPS probing was not diagnosed"
 if grep -Eq 'missing required commands|/sys/class/net|ip -4 route|getent ahostsv4' "${MAC_TEST_ROOT}/output"; then
