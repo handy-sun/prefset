@@ -616,6 +616,33 @@ probe_dns() {
     return 1
 }
 
+# Report the route a failed probe left through. ICMP is not captured by the
+# transparent proxy, so the lookup shows the real interface behind the ping.
+print_probe_route() {
+    local target="$1"
+    local route=""
+
+    if [[ "${PLATFORM}" == Darwin ]]; then
+        have_command route || return 0
+        route="$(route -n get "${target}" 2>/dev/null | awk -v target="${target}" '
+            $1 == "gateway:" {gateway = $2}
+            $1 == "interface:" {interface = $2}
+            END {
+                if (gateway == "") exit
+                printf "%s via %s", target, gateway
+                if (interface != "") printf " dev %s", interface
+                printf "\n"
+            }
+        ')"
+    else
+        have_command ip || return 0
+        route="$(ip -4 route get "${target}" 2>/dev/null | awk 'NR == 1 {sub(/ uid [0-9]+/, ""); sub(/[[:space:]]+$/, ""); print}')"
+    fi
+
+    [[ -n "${route}" ]] || return 0
+    printf '  Route: %s\n' "${route}"
+}
+
 probe_direct_ping() {
     local target="$1"
     local output
@@ -642,6 +669,7 @@ probe_direct_ping() {
     if ! output="$(LC_ALL=C run_with_timeout "$((TIMEOUT + 6))" "${ping_args[@]}" 2>&1)"; then
         output="${output//$'\n'/ }"
         record_result FAIL "ICMP ${target}: ${output:-no reply}."
+        print_probe_route "${target}"
         return 1
     fi
 

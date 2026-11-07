@@ -143,6 +143,17 @@ ping() {
 direct_ping_output="$(probe_direct_ping 8.8.8.8)" || true
 grep -Fq 'FAIL: ICMP 8.8.8.8:' <<<"${direct_ping_output}" ||
     fail "an unanswered direct ping was not reported as FAIL"
+# A failed ping also reports the route the unanswered probe left through,
+# because ICMP never enters the transparent proxy.
+# shellcheck disable=SC2329
+ip() {
+    printf '8.8.8.8 via 192.168.77.1 dev eth0 src 192.168.77.10 uid 1000\n    cache\n'
+}
+direct_ping_output="$(probe_direct_ping 8.8.8.8)" || true
+grep -Fq '  Route: 8.8.8.8 via 192.168.77.1 dev eth0 src 192.168.77.10' <<<"${direct_ping_output}" ||
+    fail "a failed direct ping did not report the route it left through"
+unset -f ip
+
 # shellcheck disable=SC2329
 have_command() {
     case "$1" in
