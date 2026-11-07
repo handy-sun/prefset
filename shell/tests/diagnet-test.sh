@@ -286,7 +286,7 @@ read_config_file() {
             printf '{"log":{"level":"info"},"inbounds":[{"type":"mixed","tag":"mixed-in","listen":"::","listen_port":2334,"sniff":{"enabled":true}}],"outbounds":[{"type":"direct","tag":"direct"}]}'
             ;;
         /run/honk/config.dae)
-            printf 'global {\n    tproxy_port: 12346\n}\n'
+            printf 'global {\n    tproxy_port: 12346\n    external_controller: \0470.0.0.0:9090\047\n    secret: \047\047\n}\n'
             ;;
         /run/dae/config.dae)
             printf 'global {\n    tproxy_port: 12345\n}\n'
@@ -303,16 +303,54 @@ grep -Fq $'Inbound: tag \033[34mmixed-in\033[0m | type \033[34mmixed\033[0m | li
 dae_highlighted="$(inspect_dae)"
 grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12345\033[0m' <<<"${dae_highlighted}" \
     || fail "dae inbound values were not highlighted"
+# shellcheck disable=SC2329
+curl() { printf '{"port":0,"mode":"Rule"}'; }
 honk_core_highlighted="$(inspect_honk_core)"
 grep -Fq $'Inbound: tag \033[34mtproxy-port\033[0m | type \033[34mtproxy\033[0m | listen \033[34m0.0.0.0\033[0m | port \033[34m12346\033[0m' <<<"${honk_core_highlighted}" \
     || fail "honk-core inbound values were not highlighted"
+grep -Fq $'Mode: \033[34mRule\033[0m' <<<"${honk_core_highlighted}" \
+    || fail "honk-core mode was not highlighted"
 mihomo_highlighted="$(inspect_mihomo)"
 grep -Fq $'Inbound: tag \033[34mmixed-port\033[0m | type \033[34mmixed\033[0m | listen \033[34m*\033[0m | port \033[34m7890\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo inbound values were not highlighted"
 grep -Fq $'Controller: listen \033[34m0.0.0.0\033[0m | port \033[34m9390\033[0m' <<<"${mihomo_highlighted}" \
     || fail "mihomo controller values were not highlighted"
-unset -f pgrep read_config_file systemctl
+unset -f pgrep read_config_file systemctl curl
 COLOR_ENABLED=false
+
+# The clash_api controller is normalized onto loopback, and the running mode
+# is read from it instead of the config's default_mode.
+[[ "$(clash_api_url '0.0.0.0:9090')" == 'http://127.0.0.1:9090/configs' ]] ||
+    fail "clash_api_url did not move a wildcard controller onto loopback"
+[[ "$(clash_api_url '192.0.2.1:9091')" == 'http://192.0.2.1:9091/configs' ]] ||
+    fail "clash_api_url rewrote a routable controller"
+if clash_api_url 'no-port' >/dev/null; then
+    fail "clash_api_url accepted a controller without a port"
+fi
+dae_config="$(printf 'global {\n    external_controller: \0470.0.0.0:9090\047\n    secret: \047s3cr:et\047\n}\n')"
+[[ "$(config_scalar "${dae_config}" external_controller)" == '0.0.0.0:9090' ]] ||
+    fail "config_scalar did not read a quoted controller"
+[[ "$(config_scalar "${dae_config}" secret)" == 's3cr:et' ]] ||
+    fail "config_scalar did not keep colons inside a value"
+# shellcheck disable=SC2329
+curl() { printf '{"port":0,"mode":"Global","mode-list":["Rule","Global","Direct"]}'; }
+[[ "$(clash_api_mode 'http://127.0.0.1:9090/configs' '')" == 'Global' ]] ||
+    fail "clash_api_mode did not read the running mode"
+# shellcheck disable=SC2329
+curl() { return 7; }
+if clash_api_mode 'http://127.0.0.1:9090/configs' '' >/dev/null; then
+    fail "clash_api_mode ignored an unreachable controller"
+fi
+# The controller secret travels as a bearer token; curl runs inside a
+# command substitution, so the mock records its arguments in a file.
+request_log="$(mktemp)"
+# shellcheck disable=SC2329
+curl() { printf '%s\n' "$*" >"${request_log}"; printf '{"mode":"Direct"}'; }
+clash_api_mode 'http://127.0.0.1:9090/configs' 'tok3n' >/dev/null
+grep -Fq 'Authorization: Bearer tok3n' "${request_log}" ||
+    fail "clash_api_mode dropped the controller secret"
+unset -f curl
+rm -f "${request_log}"
 
 # When no sing-box config is readable, the first candidate path is reported.
 # shellcheck disable=SC2329
@@ -360,6 +398,9 @@ EOF
 cat >"${MOCK_BIN}/curl" <<'EOF'
 #!/usr/bin/env bash
 echo "curl $*" >>"${DIAG_TEST_CALLS}"
+case "$*" in
+    *'/configs') printf '{"port":0,"mode":"Rule"}'; exit 0 ;;
+esac
 printf 'HTTP 200, local 127.0.0.1, connect 0.01s, TLS 0.02s'
 EOF
 
@@ -402,7 +443,7 @@ if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/sing-box/config.json' ]]; t
 fi
 if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/honk/config.dae' ]]; then
     echo 'sudo -n cat /run/honk/config.dae' >>"${DIAG_TEST_CALLS}"
-    printf 'global {\n    tproxy_port: 12346\n}\n'
+    printf 'global {\n    tproxy_port: 12346\n    external_controller: \0470.0.0.0:9090\047\n    secret: \047\047\n}\n'
     exit 0
 fi
 if [[ "$1" == '-n' && "$2" == 'cat' && "$3" == '/run/dae/config.dae' ]]; then
@@ -449,6 +490,7 @@ systemctl status --no-pager --full --lines=0 honk-core.service
 systemctl show honk-core.service --property=ExecStart --value
 sudo -n true
 sudo -n cat /run/honk/config.dae
+curl --noproxy * --silent --connect-timeout 1 --max-time 2 http://127.0.0.1:9090/configs
 pgrep -x mihomo
 systemctl status --no-pager --full --lines=0 mihomo.service
 sudo -n true
@@ -471,6 +513,7 @@ grep -Fq '── dae ──' "${TEST_ROOT}/output" || fail "dae status section w
 grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port 12345' "${TEST_ROOT}/output" || fail "dae inbound port was not printed"
 grep -Fq '── honk-core ──' "${TEST_ROOT}/output" || fail "honk-core status section was not printed"
 grep -Fq 'Inbound: tag tproxy-port | type tproxy | listen 0.0.0.0 | port 12346' "${TEST_ROOT}/output" || fail "honk-core inbound port was not printed"
+grep -Fq 'Mode: Rule' "${TEST_ROOT}/output" || fail "honk-core mode was not printed"
 grep -Fq '── mihomo ──' "${TEST_ROOT}/output" || fail "mihomo status section was not printed"
 grep -Fq 'Inbound: tag mixed-port | type mixed | listen * | port 7890' "${TEST_ROOT}/output" || fail "mihomo mixed port was not printed"
 grep -Fq 'Inbound: tag redir-port | type redir | listen * | port 7891' "${TEST_ROOT}/output" || fail "mihomo redir port was not printed"

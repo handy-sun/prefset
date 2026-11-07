@@ -52,6 +52,7 @@ Proxy config paths checked:
             /run/sing-box/config.json and /etc/sing-box/config.json as fallbacks
   dae: the -c argument of dae.service ExecStart, /etc/dae/config.dae as fallback
   honk-core: the --config argument of honk-core.service ExecStart, /etc/honk/honk-config.dae as fallback
+             (mode comes from its clash_api controller, 127.0.0.1:9090 when the config is unreadable)
   mihomo: /run/mihomo/config.yaml, /etc/mihomo/config.yaml, /var/lib/mihomo/config.yaml
 EOF
 }
@@ -1044,6 +1045,84 @@ inspect_dae() {
     fi
 }
 
+# Read a scalar setting (KEY: 'value') from a dae-style config.
+config_scalar() {
+    local content="$1"
+    local key="$2"
+
+    awk -F: -v key="${key}" '
+        $1 ~ ("^[[:space:]]*" key "[[:space:]]*$") {
+            value = $2
+            for (i = 3; i <= NF; i++) value = value ":" $i
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+            gsub(/^[\047"]|[\047"]$/, "", value)
+            print value
+            exit
+        }
+    ' <<<"${content}"
+}
+
+# A Clash-compatible controller usually binds 0.0.0.0 to serve the LAN; the
+# probe itself has to stay on loopback.
+clash_api_url() {
+    local controller="$1"
+    local host="${controller%:*}"
+    local port="${controller##*:}"
+
+    [[ "${port}" =~ ^[0-9]+$ ]] || return 1
+    case "${host}" in
+        '' | 0.0.0.0 | '*') host=127.0.0.1 ;;
+        ::) host='[::1]' ;;
+        '['*']') ;;
+        *:*) host="[${host}]" ;;
+    esac
+    printf 'http://%s:%s/configs\n' "${host}" "${port}"
+}
+
+# The mode is a runtime setting that changes through the API or the UI, so read
+# it from the controller rather than the config's default_mode.
+clash_api_mode() {
+    local url="$1"
+    local secret="$2"
+    local output
+    local -a request=(--noproxy '*' --silent --connect-timeout 1 --max-time 2)
+
+    [[ -z "${secret}" ]] || request+=(-H "Authorization: Bearer ${secret}")
+    request+=("${url}")
+
+    output="$(curl "${request[@]}" 2>/dev/null)" || return 1
+    printf '%s\n' "${output}" | tr ',' '\n' |
+        sed -n 's/^[^"]*"mode"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' |
+        sed -n '1p'
+}
+
+print_honk_mode() {
+    local config_summary="$1"
+    local controller=""
+    local secret=""
+    local url
+    local mode=""
+
+    if [[ -n "${config_summary}" ]]; then
+        controller="$(config_scalar "${config_summary}" external_controller)"
+        secret="$(config_scalar "${config_summary}" secret)"
+    fi
+    # The config is root-only on most hosts; fall back to honk-core's default
+    # controller instead of dropping the line.
+    controller="${controller:-127.0.0.1:9090}"
+
+    url="$(clash_api_url "${controller}")" || true
+    if [[ -n "${url}" ]]; then
+        mode="$(clash_api_mode "${url}" "${secret}")" || true
+    fi
+
+    if [[ -n "${mode}" ]]; then
+        printf 'Mode: %s\n' "$(important_value "${mode}")"
+        return 0
+    fi
+    printf 'Mode: unavailable (%s did not answer).\n' "$(important_value "${controller}")"
+}
+
 inspect_honk_core() {
     local config_path="/etc/honk/honk-config.dae"
     local unit_config_path
@@ -1067,19 +1146,24 @@ inspect_honk_core() {
 
     if ! config_summary="$(read_config_file "${config_path}")"; then
         printf 'Inbound: unavailable (%s is not readable).\n' "${config_path}"
-        return 0
+        config_summary=""
     fi
 
-    tproxy_port="$(awk -F: '$1 ~ /^[[:space:]]*tproxy_port[[:space:]]*$/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' <<<"${config_summary}")"
+    tproxy_port=""
+    if [[ -n "${config_summary}" ]]; then
+        tproxy_port="$(awk -F: '$1 ~ /^[[:space:]]*tproxy_port[[:space:]]*$/ {gsub(/[[:space:]]/, "", $2); print $2; exit}' <<<"${config_summary}")"
+    fi
     if [[ "${tproxy_port}" =~ ^[0-9]+$ ]]; then
         printf 'Inbound: tag %s | type %s | listen %s | port %s\n' \
             "$(important_value 'tproxy-port')" \
             "$(important_value 'tproxy')" \
             "$(important_value '0.0.0.0')" \
             "$(important_value "${tproxy_port}")"
-    else
+    elif [[ -n "${config_summary}" ]]; then
         printf 'Inbound: none configured.\n'
     fi
+
+    print_honk_mode "${config_summary}"
 }
 
 inspect_mihomo() {
